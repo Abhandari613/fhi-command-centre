@@ -1,0 +1,37 @@
+{
+  "user": {
+    "id": "233c7f94-d3e0-4d4f-b35c-06f7a64c9610",
+    "aud": "authenticated",
+    "role": "authenticated",
+    "email": "atul@613physio.com",
+    "email_confirmed_at": "2026-02-13T02:57:25.469347Z",
+    "phone": "",
+    "confirmed_at": "2026-02-13T02:57:25.469347Z",
+    "last_sign_in_at": "2026-02-16T01:44:27.252144Z",
+    "app_metadata": {
+      "provider": "email",
+      "providers": [
+        "email"
+      ]
+    },
+    "user_metadata": {
+      "email": "atul@613physio.com",
+      "email_verified": true,
+      "phone_verified": false,
+      "sub": "233c7f94-d3e0-4d4f-b35c-06f7a64c9610"
+    },
+    "identities": null,
+    "created_at": "2026-02-13T02:57:04.367866Z",
+    "updated_at": "2026-02-16T01:44:27.255278Z",
+    "is_anonymous": false
+  },
+  "profile": {
+    "id": "233c7f94-d3e0-4d4f-b35c-06f7a64c9610",
+    "organization_id": "9f05bb19-3913-4590-9d6e-82804e9cd094",
+    "role": "staff",
+    "full_name": null,
+    "email": "atul@613physio.com",
+    "avatar_url": null,
+    "created_at": "2026-02-13T02:57:04.367498+00:00"
+  }
+}

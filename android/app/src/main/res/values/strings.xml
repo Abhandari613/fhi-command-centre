@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FHI Command Centre</string>
+    <string name="title_activity_main">FHI Command Centre</string>
+    <string name="package_name">com.fhicommandcentre.app</string>
+    <string name="custom_url_scheme">com.fhicommandcentre.app</string>
+</resources>
