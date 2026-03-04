@@ -37,7 +37,7 @@ export class AIAgent {
         // Upload the audio file to the Gemini File API
         const uploadedFile = await this.ai.files.upload({
             file: filePath,
-            mimeType: "audio/webm",
+            config: { mimeType: "audio/webm" },
         });
 
         // Prompt Gemini to transcribe
@@ -49,7 +49,7 @@ export class AIAgent {
             ],
         });
 
-        return response.text() || "";
+        return response.text || "";
     }
 
     async extractQuoteDetails(transcript: string): Promise<QuoteData> {
@@ -79,7 +79,7 @@ ${transcript}`;
             },
         });
 
-        return JSON.parse(response.text() || "{}") as QuoteData;
+        return JSON.parse(response.text || "{}") as QuoteData;
     }
 
     async parseWorkOrderDraft(transcript: string): Promise<WorkOrderDraftData> {
@@ -106,6 +106,6 @@ ${transcript}`;
             },
         });
 
-        return JSON.parse(response.text() || "{}") as WorkOrderDraftData;
+        return JSON.parse(response.text || "{}") as WorkOrderDraftData;
     }
 }
