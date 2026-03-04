@@ -1,6 +1,5 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
 
 import { ReceiptList } from "@/components/receipts/ReceiptList";
 import { Plus } from "lucide-react";

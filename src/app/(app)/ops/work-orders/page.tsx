@@ -1,12 +1,13 @@
 "use client";
 
 import { WorkOrderList } from "@/components/work-orders/WorkOrderList";
+import { VoiceIngest } from "@/components/work-orders/VoiceIngest";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
 export default function WorkOrdersPage() {
     return (
-        <div className="min-h-screen pb-24">
+        <div className="min-h-screen pb-24 relative">
             <div className="p-6">
                 <header className="flex justify-between items-end mb-6">
                     <div>
@@ -20,6 +21,8 @@ export default function WorkOrdersPage() {
 
                 <WorkOrderList />
             </div>
+
+            <VoiceIngest />
         </div>
     );
 }

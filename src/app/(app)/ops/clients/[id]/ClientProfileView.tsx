@@ -117,7 +117,7 @@ export function ClientProfileView({ client: initialClient, jobs, mode = 'admin' 
                     {/* Avatar */}
                     <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-white/10 shrink-0 shadow-2xl relative group">
                         <span className="text-4xl md:text-5xl font-black text-white">
-                            {client.name.charAt(0)}
+                            {client.name ? client.name.charAt(0).toUpperCase() : '?'}
                         </span>
                         {client.marketing_info?.status === 'VIP' && (
                             <div className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full border-2 border-black flex items-center gap-1">

@@ -1,6 +1,8 @@
 import { AuroraBackground } from "@/components/layout/AuroraBackground";
 import { BottomNav } from "@/components/layout/BottomNav";
 
+export const dynamic = 'force-dynamic';
+
 export default function AppLayout({
     children,
 }: Readonly<{

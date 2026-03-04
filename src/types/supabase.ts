@@ -1666,6 +1666,47 @@ export type Database = {
           }
         ]
       }
+      work_order_drafts: {
+        Row: {
+          id: string
+          organization_id: string
+          source: string
+          raw_content: string
+          extracted_data: any
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          source: string
+          raw_content: string
+          extracted_data?: any
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          source?: string
+          raw_content?: string
+          extracted_data?: any
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_drafts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       work_order_tasks: {
         Row: {
           id: string

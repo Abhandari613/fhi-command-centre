@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState, useEffect, useTransition } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -35,8 +36,8 @@ export default function ClientsPage() {
     }, [supabase]);
 
     const filteredClients = clients.filter(c =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.email?.toLowerCase().includes(search.toLowerCase())
+        (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (c.email || '').toLowerCase().includes(search.toLowerCase())
     );
 
     const handleCreateClient = async (e: React.FormEvent) => {
@@ -184,12 +185,12 @@ export default function ClientsPage() {
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-white/10">
                                             <span className="text-xl font-bold text-white">
-                                                {client.name.charAt(0)}
+                                                {client.name ? client.name.charAt(0).toUpperCase() : '?'}
                                             </span>
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-semibold text-white group-hover:text-indigo-300 transition-colors">
-                                                {client.name}
+                                                {client.name || 'Unnamed Client'}
                                             </h3>
                                             <div className="flex items-center gap-2 text-zinc-400 text-sm mt-1">
                                                 <Mail className="w-3 h-3" />

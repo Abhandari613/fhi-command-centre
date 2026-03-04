@@ -12,6 +12,15 @@ export interface QuoteData {
     }[];
 }
 
+export interface WorkOrderDraftData {
+    client_name: string | null;
+    property_address_or_unit: string | null;
+    trade_type: string | null;
+    description: string;
+    needs_clarification: boolean;
+    missing_details: string[];
+}
+
 export class AIAgent {
     private openai: OpenAI;
 
@@ -62,5 +71,34 @@ export class AIAgent {
         });
 
         return JSON.parse(completion.choices[0].message.content || "{}") as QuoteData;
+    }
+
+    async parseWorkOrderDraft(transcript: string): Promise<WorkOrderDraftData> {
+        const completion = await this.openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are an expert dispatcher for a construction company. Extract work order details from the provided message.
+          Output JSON only with this structure:
+          {
+            "client_name": "string | null (if mentioned)",
+            "property_address_or_unit": "string | null (if mentioned)",
+            "trade_type": "string | null (e.g., Plumbing, Electrical, General, etc.)",
+            "description": "string (the core request or problem)",
+            "needs_clarification": boolean,
+            "missing_details": ["string"]
+          }
+          If client_name, property_address_or_unit, or trade_type are missing or you are not highly confident, set needs_clarification to true and list them in missing_details.`,
+                },
+                {
+                    role: "user",
+                    content: transcript,
+                },
+            ],
+            response_format: { type: "json_object" },
+        });
+
+        return JSON.parse(completion.choices[0].message.content || "{}") as WorkOrderDraftData;
     }
 }

@@ -1,7 +1,5 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
-
 
 import { GlassCard } from "@/components/ui/GlassCard";
 import { cn } from "@/lib/utils";

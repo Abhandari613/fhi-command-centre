@@ -10,7 +10,7 @@ export function BottomNav() {
 
     const navItems: { name: string; href: string; icon: any; isFab?: boolean }[] = [
         { name: "Dashboard", href: "/", icon: LayoutDashboard },
-        { name: "Engine", href: "/engine/dashboard", icon: TrendingUp },
+        // { name: "Engine", href: "/engine/dashboard", icon: TrendingUp },
         { name: "Work Orders", href: "/ops/work-orders", icon: Briefcase },
         { name: "Properties", href: "/ops/clients", icon: Building },
         { name: "Team", href: "/ops/subs", icon: User },
