@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data, error } = await resend.emails.send({
-      from: "Frank's Home Improvement <quotes@fhi-app.vercel.app>",
+      from: "Frank's Home Improvement <onboarding@resend.dev>",
       to: ["coady@allprofessionaltrades.com"],
       cc: ["neilh@allprofessionaltrades.com"],
       subject: `Quote ${jobNumber} - ${propertyAddress || "Job"}`,
