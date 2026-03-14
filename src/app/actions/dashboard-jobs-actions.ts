@@ -67,7 +67,7 @@ export async function advanceJobStatus(jobId: string) {
     .eq("id", jobId)
     .single();
 
-  if (!job) return { success: false, error: "Job not found" };
+  if (!job?.status) return { success: false, error: "Job not found" };
 
   const nextStatus = NEXT_STATUS[job.status];
   if (!nextStatus) return { success: false, error: "No next status" };

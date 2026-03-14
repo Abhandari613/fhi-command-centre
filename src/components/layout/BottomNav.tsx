@@ -2,20 +2,17 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Briefcase, FileText, Calendar, Plus, DollarSign, User, TrendingUp, Building } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, Calendar, Plus, DollarSign, User, TrendingUp, Building, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav() {
     const pathname = usePathname();
 
     const navItems: { name: string; href: string; icon: any; isFab?: boolean }[] = [
-        { name: "Dashboard", href: "/", icon: LayoutDashboard },
-        // { name: "Engine", href: "/engine/dashboard", icon: TrendingUp },
+        { name: "Jobs", href: "/dashboard", icon: LayoutDashboard },
         { name: "Work Orders", href: "/ops/work-orders", icon: Briefcase },
-        { name: "Properties", href: "/ops/clients", icon: Building },
-        { name: "Team", href: "/ops/subs", icon: User },
+        { name: "New Job", href: "/ingest", icon: Plus, isFab: true },
         { name: "Estimates", href: "/ops/quotes", icon: FileText },
-        { name: "Schedule", href: "/ops/schedule", icon: Calendar },
         { name: "Finance", href: "/ops/finance", icon: DollarSign },
     ];
 

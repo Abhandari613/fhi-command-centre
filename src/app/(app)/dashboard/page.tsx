@@ -145,7 +145,7 @@ export default function DashboardPage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                   >
-                    <Link href={`/ops/jobs/${job.id}/scope`}>
+                    <Link href={`/ops/jobs/${job.id}`}>
                       <GlassCard className="p-4 active:scale-[0.98] transition-transform">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
@@ -172,9 +172,9 @@ export default function DashboardPage() {
                                   })}
                                 </span>
                               )}
-                              {job.quoted_total > 0 && (
+                              {(job.quoted_total ?? 0) > 0 && (
                                 <span className="text-green-400 font-semibold">
-                                  ${job.quoted_total.toFixed(0)}
+                                  ${(job.quoted_total ?? 0).toFixed(0)}
                                 </span>
                               )}
                             </div>

@@ -1,5 +1,5 @@
-import { OpenAI } from "openai";
 import { NextResponse } from "next/server";
+import { AIAgent } from "@/lib/clients/fhi/services/ai-agent";
 
 export async function POST(req: Request) {
     try {
@@ -10,20 +10,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "No file provided" }, { status: 400 });
         }
 
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-            return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 });
-        }
+        const agent = new AIAgent();
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const text = await agent.transcribeAudio(buffer);
 
-        const openai = new OpenAI({ apiKey });
-
-        const response = await openai.audio.transcriptions.create({
-            file: file,
-            model: "whisper-1",
-        });
-
-        return NextResponse.json({ text: response.text });
-
+        return NextResponse.json({ text });
     } catch (error) {
         console.error("Transcription error:", error);
         return NextResponse.json({ error: "Transcription failed" }, { status: 500 });

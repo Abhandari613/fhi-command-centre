@@ -124,6 +124,8 @@ export type Database = {
           created_at: string
           id: string
           is_primary: boolean | null
+          lat: number | null
+          lng: number | null
           name: string
         }
         Insert: {
@@ -132,6 +134,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_primary?: boolean | null
+          lat?: number | null
+          lng?: number | null
           name: string
         }
         Update: {
@@ -140,6 +144,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_primary?: boolean | null
+          lat?: number | null
+          lng?: number | null
           name?: string
         }
         Relationships: [
@@ -204,6 +210,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contacts: {
+        Row: {
+          company: string | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+          role: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          name: string
+          role?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          role?: string | null
+        }
+        Relationships: []
       }
       engagements: {
         Row: {
@@ -764,6 +797,38 @@ export type Database = {
           },
         ]
       }
+      job_attachments: {
+        Row: {
+          created_at: string | null
+          file_type: string | null
+          file_url: string
+          id: string
+          job_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          job_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_attachments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_events: {
         Row: {
           created_at: string
@@ -838,54 +903,119 @@ export type Database = {
           },
         ]
       }
+      job_tasks: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          is_confirmed: boolean | null
+          job_id: string
+          quantity: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          is_confirmed?: boolean | null
+          job_id: string
+          quantity?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          is_confirmed?: boolean | null
+          job_id?: string
+          quantity?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_tasks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           address: string | null
           client_id: string | null
           created_at: string
           description: string | null
+          due_date: string | null
           end_date: string | null
+          expected_supplies: Json | null
           id: string
+          job_number: string | null
           last_contact_date: string | null
           location_id: string | null
           next_reminder_date: string | null
           organization_id: string
+          property_address: string | null
           quote_expiry_date: string | null
+          requester_email: string | null
+          requester_name: string | null
+          source_email_body: string | null
+          source_email_subject: string | null
           start_date: string | null
           status: string | null
           title: string
+          urgency: string | null
         }
         Insert: {
           address?: string | null
           client_id?: string | null
           created_at?: string
           description?: string | null
+          due_date?: string | null
           end_date?: string | null
+          expected_supplies?: Json | null
           id?: string
+          job_number?: string | null
           last_contact_date?: string | null
           location_id?: string | null
           next_reminder_date?: string | null
           organization_id: string
+          property_address?: string | null
           quote_expiry_date?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
+          source_email_body?: string | null
+          source_email_subject?: string | null
           start_date?: string | null
           status?: string | null
           title: string
+          urgency?: string | null
         }
         Update: {
           address?: string | null
           client_id?: string | null
           created_at?: string
           description?: string | null
+          due_date?: string | null
           end_date?: string | null
+          expected_supplies?: Json | null
           id?: string
+          job_number?: string | null
           last_contact_date?: string | null
           location_id?: string | null
           next_reminder_date?: string | null
           organization_id?: string
+          property_address?: string | null
           quote_expiry_date?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
+          source_email_body?: string | null
+          source_email_subject?: string | null
           start_date?: string | null
           status?: string | null
           title?: string
+          urgency?: string | null
         }
         Relationships: [
           {
@@ -1172,7 +1302,9 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          item_type: string | null
           job_id: string
+          provided_by: string | null
           quantity: number | null
           total: number | null
           unit_price: number | null
@@ -1181,7 +1313,9 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          item_type?: string | null
           job_id: string
+          provided_by?: string | null
           quantity?: number | null
           total?: number | null
           unit_price?: number | null
@@ -1190,7 +1324,9 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          item_type?: string | null
           job_id?: string
+          provided_by?: string | null
           quantity?: number | null
           total?: number | null
           unit_price?: number | null
@@ -1393,7 +1529,6 @@ export type Database = {
           phone: string | null
           status: string | null
           trade: string | null
-          compliance_status: string | null
         }
         Insert: {
           address?: string | null
@@ -1406,7 +1541,6 @@ export type Database = {
           phone?: string | null
           status?: string | null
           trade?: string | null
-          compliance_status?: string | null
         }
         Update: {
           address?: string | null
@@ -1419,7 +1553,6 @@ export type Database = {
           phone?: string | null
           status?: string | null
           trade?: string | null
-          compliance_status?: string | null
         }
         Relationships: [
           {
@@ -1602,175 +1735,6 @@ export type Database = {
           },
         ]
       }
-      work_orders: {
-        Row: {
-          id: string
-          organization_id: string
-          client_id: string
-          property_address_or_unit: string
-          status: string
-          assigned_subcontractor_id: string | null
-          start_date: string | null
-          estimated_completion_date: string | null
-          actual_completion_date: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          organization_id: string
-          client_id: string
-          property_address_or_unit: string
-          status?: string
-          assigned_subcontractor_id?: string | null
-          start_date?: string | null
-          estimated_completion_date?: string | null
-          actual_completion_date?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          organization_id?: string
-          client_id?: string
-          property_address_or_unit?: string
-          status?: string
-          assigned_subcontractor_id?: string | null
-          start_date?: string | null
-          estimated_completion_date?: string | null
-          actual_completion_date?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "work_orders_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_orders_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_orders_assigned_subcontractor_id_fkey"
-            columns: ["assigned_subcontractor_id"]
-            isOneToOne: false
-            referencedRelation: "subcontractors"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      work_order_drafts: {
-        Row: {
-          id: string
-          organization_id: string
-          source: string
-          raw_content: string
-          extracted_data: any
-          status: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          organization_id: string
-          source: string
-          raw_content: string
-          extracted_data?: any
-          status?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          organization_id?: string
-          source?: string
-          raw_content?: string
-          extracted_data?: any
-          status?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "work_order_drafts_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      work_order_tasks: {
-        Row: {
-          id: string
-          work_order_id: string
-          organization_id: string
-          trade_type: string
-          description: string | null
-          estimated_cost: number | null
-          actual_cost: number | null
-          status: string
-          assigned_subcontractor_id: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          work_order_id: string
-          organization_id: string
-          trade_type: string
-          description?: string | null
-          estimated_cost?: number | null
-          actual_cost?: number | null
-          status?: string
-          assigned_subcontractor_id?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          work_order_id?: string
-          organization_id?: string
-          trade_type?: string
-          description?: string | null
-          estimated_cost?: number | null
-          actual_cost?: number | null
-          status?: string
-          assigned_subcontractor_id?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "work_order_tasks_work_order_id_fkey"
-            columns: ["work_order_id"]
-            isOneToOne: false
-            referencedRelation: "work_orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_order_tasks_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_order_tasks_assigned_subcontractor_id_fkey"
-            columns: ["assigned_subcontractor_id"]
-            isOneToOne: false
-            referencedRelation: "subcontractors"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       user_profiles: {
         Row: {
           avatar_url: string | null
@@ -1802,6 +1766,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_drafts: {
+        Row: {
+          created_at: string
+          extracted_data: Json | null
+          id: string
+          organization_id: string
+          raw_content: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_data?: Json | null
+          id?: string
+          organization_id: string
+          raw_content: string
+          source: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          extracted_data?: Json | null
+          id?: string
+          organization_id?: string
+          raw_content?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_drafts_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1861,116 +1866,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {

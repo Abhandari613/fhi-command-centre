@@ -8,6 +8,7 @@ import {
   updateTaskPricing,
   updateJobToQuoted,
 } from "@/app/actions/quote-builder-actions";
+import { getSavedRates, upsertRate } from "@/app/actions/rate-actions";
 import {
   FileText,
   Send,
@@ -24,29 +25,10 @@ type LineItem = {
   unit_price: number;
 };
 
-const DEFAULT_RATES: Record<string, number> = {
-  "paint room": 150,
-  "paint ceiling": 80,
-  "cabinet painting": 35,
-  "drywall patch": 95,
-  "tile repair": 25,
-};
-
-function getSavedRates(): Record<string, number> {
-  if (typeof window === "undefined") return DEFAULT_RATES;
-  try {
-    const saved = localStorage.getItem("fhi-rates");
-    return saved ? { ...DEFAULT_RATES, ...JSON.parse(saved) } : DEFAULT_RATES;
-  } catch {
-    return DEFAULT_RATES;
-  }
-}
-
-function guessRate(description: string): number {
+function guessRateFromMap(description: string, rates: Record<string, number>): number {
   const desc = description.toLowerCase();
-  const rates = getSavedRates();
   for (const [key, rate] of Object.entries(rates)) {
-    if (desc.includes(key)) return rate;
+    if (desc.includes(key.toLowerCase())) return rate;
   }
   return 0;
 }
@@ -58,20 +40,21 @@ export default function QuotePage() {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sent, setSent] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     loadData();
   }, [id]);
 
   const loadData = async () => {
-    const data = await getJobForQuote(id);
+    const [data, rates] = await Promise.all([getJobForQuote(id), getSavedRates()]);
     setJob(data.job);
     setItems(
       data.tasks.map((t: any) => ({
         id: t.id,
         description: t.description,
         quantity: t.quantity || 1,
-        unit_price: t.unit_price || guessRate(t.description),
+        unit_price: t.unit_price || guessRateFromMap(t.description, rates),
       }))
     );
     setLoaded(true);
@@ -92,79 +75,79 @@ export default function QuotePage() {
         unit_price: item.unit_price,
         description: item.description,
       });
+      if (item.unit_price > 0) {
+        await upsertRate(item.description, item.unit_price);
+      }
     }
   };
 
-  const generatePDF = useCallback(() => {
-    // Build a printable HTML invoice and trigger browser print/save
-    const date = new Date().toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+  const pdfPayload = useCallback(
+    () => ({
+      jobNumber: job?.job_number || "",
+      propertyAddress: job?.property_address || job?.address || "",
+      items: items.map((i) => ({
+        description: i.description,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+      })),
+      total,
+    }),
+    [job, items, total]
+  );
 
-    const rows = items
-      .map(
-        (item) => `
-        <tr>
-          <td style="padding:8px;border-bottom:1px solid #eee">${item.description}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">$${item.unit_price.toFixed(2)}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">$${(item.quantity * item.unit_price).toFixed(2)}</td>
-        </tr>`
-      )
-      .join("");
-
-    const html = `<!DOCTYPE html>
-<html><head><title>Quote ${job?.job_number}</title>
-<style>body{font-family:Arial,sans-serif;margin:40px;color:#333}
-table{width:100%;border-collapse:collapse}
-th{background:#1a1a2e;color:white;padding:10px;text-align:left}
-.total{font-size:1.3em;font-weight:bold;text-align:right;margin-top:20px}
-.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px}
-.footer{margin-top:40px;text-align:center;font-size:0.85em;color:#888}</style></head>
-<body>
-<div class="header">
-  <div><h1 style="margin:0;color:#1a1a2e">Frank's Home Improvement</h1>
-  <p style="margin:4px 0;color:#666">Quality Painting & Repairs</p></div>
-  <div style="text-align:right"><strong>Quote</strong><br/>${job?.job_number || ""}<br/>${date}</div>
-</div>
-<p><strong>Property:</strong> ${job?.property_address || job?.address || "N/A"}</p>
-<table>
-  <thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr></thead>
-  <tbody>${rows}</tbody>
-</table>
-<div class="total">Total: $${total.toFixed(2)}</div>
-<div class="footer">
-  <p>aguirref04@gmail.com</p>
-  <p>Thank you for choosing Frank's Home Improvement</p>
-</div>
-</body></html>`;
-
-    const win = window.open("", "_blank");
-    if (win) {
-      win.document.write(html);
-      win.document.close();
-      setTimeout(() => win.print(), 500);
+  const generatePDF = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch("/api/quote/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pdfPayload()),
+      });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Quote-${job?.job_number || "FHI"}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download failed:", err);
     }
-  }, [items, job, total]);
+    setDownloading(false);
+  };
 
   const handleSendToNeil = async () => {
     setSaving(true);
     await saveAllPricing();
     await updateJobToQuoted(id);
 
-    // Open email client with pre-filled fields
-    const subject = encodeURIComponent(
-      `Quote ${job?.job_number} - ${job?.property_address || job?.title || "Job"}`
-    );
-    const bodyText = encodeURIComponent(
-      `Hi Coady,\n\nPlease find the quote for ${job?.job_number} attached.\n\nProperty: ${job?.property_address || job?.address || "N/A"}\nTotal: $${total.toFixed(2)}\n\nThanks,\nFrank`
-    );
-    window.open(
-      `mailto:coady@allprofessionaltrades.com?cc=neilh@allprofessionaltrades.com&subject=${subject}&body=${bodyText}`,
-      "_self"
-    );
+    try {
+      const res = await fetch("/api/quote/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pdfPayload()),
+      });
+      const data = await res.json();
+
+      if (data.fallback) {
+        const subject = encodeURIComponent(
+          `Quote ${job?.job_number} - ${job?.property_address || job?.title || "Job"}`
+        );
+        const bodyText = encodeURIComponent(
+          `Hi Coady,\n\nPlease find the quote for ${job?.job_number} attached.\n\nProperty: ${job?.property_address || job?.address || "N/A"}\nTotal: $${total.toFixed(2)}\n\nThanks,\nFrank`
+        );
+        window.open(
+          `mailto:coady@allprofessionaltrades.com?cc=neilh@allprofessionaltrades.com&subject=${subject}&body=${bodyText}`,
+          "_self"
+        );
+      }
+    } catch {
+      const subject = encodeURIComponent(`Quote ${job?.job_number}`);
+      window.open(
+        `mailto:coady@allprofessionaltrades.com?cc=neilh@allprofessionaltrades.com&subject=${subject}`,
+        "_self"
+      );
+    }
 
     setSent(true);
     setSaving(false);
@@ -198,7 +181,6 @@ th{background:#1a1a2e;color:white;padding:10px;text-align:left}
         </GlassCard>
       )}
 
-      {/* Line items */}
       <GlassCard className="p-4 space-y-4">
         <h2 className="text-lg font-bold flex items-center gap-2">
           <FileText className="w-5 h-5" />
@@ -206,10 +188,7 @@ th{background:#1a1a2e;color:white;padding:10px;text-align:left}
         </h2>
 
         {items.map((item, idx) => (
-          <div
-            key={item.id}
-            className="bg-white/5 rounded-xl p-3 space-y-2"
-          >
+          <div key={item.id} className="bg-white/5 rounded-xl p-3 space-y-2">
             <input
               type="text"
               value={item.description}
@@ -252,7 +231,6 @@ th{background:#1a1a2e;color:white;padding:10px;text-align:left}
           </div>
         ))}
 
-        {/* Grand total */}
         <div className="flex items-center justify-between pt-3 border-t border-white/10">
           <span className="text-lg font-bold flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
@@ -264,14 +242,20 @@ th{background:#1a1a2e;color:white;padding:10px;text-align:left}
         </div>
       </GlassCard>
 
-      {/* Action buttons */}
       <div className="space-y-3">
         <button
           onClick={generatePDF}
-          className="w-full bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
+          disabled={downloading}
+          className="w-full bg-white/10 hover:bg-white/15 disabled:opacity-40 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
         >
-          <Download className="w-5 h-5" />
-          Generate PDF
+          {downloading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <>
+              <Download className="w-5 h-5" />
+              Download PDF
+            </>
+          )}
         </button>
 
         <button
