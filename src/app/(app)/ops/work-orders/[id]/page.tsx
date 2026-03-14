@@ -15,11 +15,10 @@ import { JobPhotoGallery } from "@/components/work-orders/JobPhotoGallery";
 import { motion } from "framer-motion";
 import { User, Phone } from "lucide-react";
 
-import { Database } from "@/types/supabase";
-
-type WorkOrderRow = Database['public']['Tables']['work_orders']['Row'] & { received_at?: string; };
-type ClientRow = Database['public']['Tables']['clients']['Row'];
-type WorkOrderTaskRow = Database['public']['Tables']['work_order_tasks']['Row'] & { subcontractors?: { name: string, phone: string, trade: string } | null; cost_estimate?: number; };
+// TODO: Sync Supabase types to include work_orders/work_order_tasks tables
+type WorkOrderRow = any;
+type ClientRow = any;
+type WorkOrderTaskRow = any;
 
 type WorkOrderWithDetails = WorkOrderRow & {
     clients: ClientRow | null;
@@ -64,8 +63,7 @@ export default function WorkOrderDetailsPage() {
 
     useEffect(() => {
         const fetchWorkOrder = async () => {
-            const { data, error } = await supabase
-                .from('work_orders')
+            const { data, error } = await (supabase.from as any)('work_orders')
                 .select('*, clients(*), work_order_tasks(*, subcontractors(*))')
                 .eq('id', id)
                 .single();
@@ -103,7 +101,7 @@ export default function WorkOrderDetailsPage() {
     };
 
     const handleUpdateStatus = async (status: string) => {
-        const { error } = await supabase.from('work_orders').update({ status }).eq('id', id);
+        const { error } = await (supabase.from as any)('work_orders').update({ status }).eq('id', id);
         if (!error && workOrder) {
             setWorkOrder({ ...workOrder, status });
         }

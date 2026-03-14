@@ -9,14 +9,24 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Database } from "@/types/supabase";
 
-type Transaction = Database['public']['Tables']['transactions']['Row'] & {
+type Transaction = {
+    id: string;
+    work_order_id?: string | null;
+    category_id?: string | null;
+    amount?: number | null;
+    description?: string | null;
+    date?: string | null;
+    type?: string | null;
+    status?: string | null;
+    receipt_url?: string | null;
     work_orders?: { property_address_or_unit: string } | null;
     categories?: { name: string } | null;
+    [key: string]: any;
 };
 
-type WorkOrder = Database['public']['Tables']['work_orders']['Row'];
-type Category = Database['public']['Tables']['categories']['Row'];
-type TransactionUpdate = Database['public']['Tables']['transactions']['Update'];
+type WorkOrder = any;
+type Category = any;
+type TransactionUpdate = any;
 type Receipt = Database['public']['Tables']['receipts']['Row'];
 
 export default function TransactionsPage() {
@@ -38,8 +48,8 @@ export default function TransactionsPage() {
                 .order('date', { ascending: false });
 
             // Fetch metadata for dropdowns
-            const { data: woData } = await supabase.from('work_orders').select('*').in('status', ['Scheduled', 'In Progress', 'Draft']);
-            const { data: catsData } = await supabase.from('categories').select('*').order('name');
+            const { data: woData } = await (supabase.from('work_orders' as any) as any).select('*').in('status', ['Scheduled', 'In Progress', 'Draft']);
+            const { data: catsData } = await (supabase.from('categories' as any) as any).select('*').order('name');
             const { data: receiptsData } = await supabase.from('receipts').select('*').order('date', { ascending: false }).limit(50); // Fetch recent 50
 
             if (txData) setTransactions(txData as unknown as Transaction[]);
@@ -100,14 +110,14 @@ export default function TransactionsPage() {
                                 </button>
                                 <div>
                                     <h3 className="font-bold leading-tight line-clamp-1">{tx.description || tx.merchant}</h3>
-                                    <span className="text-xs opacity-60">{new Date(tx.date).toLocaleDateString()}</span>
+                                    <span className="text-xs opacity-60">{tx.date ? new Date(tx.date).toLocaleDateString() : ""}</span>
                                 </div>
                             </div>
                             <span className={cn(
                                 "font-mono font-bold whitespace-nowrap",
-                                tx.amount > 0 ? "text-emerald-400" : "text-white"
+                                (tx.amount ?? 0) > 0 ? "text-emerald-400" : "text-white"
                             )}>
-                                {tx.amount > 0 ? "+" : ""}{tx.amount.toFixed(2)}
+                                {(tx.amount ?? 0) > 0 ? "+" : ""}{(tx.amount ?? 0).toFixed(2)}
                             </span>
                         </div>
 

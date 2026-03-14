@@ -6,10 +6,10 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Briefcase, Calendar, MapPin, User, ArrowRight, AlertCircle, Mic } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Database } from "@/types/supabase";
 import { ReviewDraftModal } from "./ReviewDraftModal";
 
-type WorkOrder = Database['public']['Tables']['work_orders']['Row'] & { clients?: { name: string } | null };
+// TODO: Sync Supabase types to include work_orders table
+type WorkOrder = any;
 
 // Temporary type since we haven't generated the exact Supabase types yet.
 type Draft = any;
@@ -35,8 +35,7 @@ export function WorkOrderList() {
                 setDrafts(data);
             }
         } else {
-            let query = supabase
-                .from('work_orders')
+            let query = (supabase.from as any)('work_orders')
                 .select('*, clients(name)')
                 .order('created_at', { ascending: false });
 

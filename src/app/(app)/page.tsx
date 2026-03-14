@@ -8,8 +8,6 @@ import { Mic, Camera, List, Calendar, Clock, MapPin, ArrowRight, Zap, TrendingUp
 import Link from "next/link";
 import { motion } from "framer-motion";
 
-import { Database } from "@/types/supabase";
-
 export default function Dashboard() {
   const supabase = createClient();
   const [metrics, setMetrics] = useState({
@@ -32,8 +30,8 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       // 1. Fetch Work Orders for Metrics
-      const { data: wos } = await supabase.from('work_orders').select('status') as { data: { status: string | null }[] | null };
-      const { data: tasks } = await supabase.from('work_order_tasks').select('status, estimated_cost') as { data: { status: string, estimated_cost: number }[] | null };
+      const { data: wos } = await (supabase.from as any)('work_orders').select('status') as { data: { status: string | null }[] | null };
+      const { data: tasks } = await (supabase.from as any)('work_order_tasks').select('status, estimated_cost') as { data: { status: string, estimated_cost: number }[] | null };
 
       const activeCount = wos?.filter((j) => ['Scheduled', 'In Progress'].includes(j.status || '')).length || 0;
       const draftCount = wos?.filter((j) => j.status === 'Draft').length || 0;
@@ -49,8 +47,7 @@ export default function Dashboard() {
       setMetrics({ activeWorkOrders: activeCount, drafts: draftCount, taskRevenue });
 
       // 2. Fetch Active Work Orders
-      const { data: woData } = await supabase
-        .from('work_orders')
+      const { data: woData } = await (supabase.from as any)('work_orders')
         .select('*, clients(name)')
         .in('status', ['Scheduled', 'In Progress', 'Draft'])
         .order('created_at', { ascending: false })

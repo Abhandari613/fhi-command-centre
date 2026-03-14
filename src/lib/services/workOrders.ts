@@ -7,8 +7,7 @@ import { WorkOrderSchema, WorkOrderTaskSchema, type WorkOrder, type WorkOrderTas
 
 export async function getWorkOrders(organizationId: string): Promise<WorkOrder[]> {
     const supabase = await createClient();
-    const { data, error } = await supabase
-        .from('work_orders')
+    const { data, error } = await (supabase.from as any)('work_orders')
         .select('*')
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
@@ -24,8 +23,7 @@ export async function createWorkOrder(input: Omit<WorkOrder, 'id'>): Promise<Wor
     const validatedData = WorkOrderSchema.parse(input);
     const supabase = await createClient();
 
-    const { data, error } = await supabase
-        .from('work_orders')
+    const { data, error } = await (supabase.from as any)('work_orders')
         .insert(validatedData)
         .select()
         .single();
@@ -39,8 +37,7 @@ export async function createWorkOrder(input: Omit<WorkOrder, 'id'>): Promise<Wor
 
 export async function getWorkOrderTasks(organizationId: string, workOrderId?: string): Promise<WorkOrderTask[]> {
     const supabase = await createClient();
-    let query = supabase
-        .from('work_order_tasks')
+    let query = (supabase.from as any)('work_order_tasks')
         .select('*')
         .eq('organization_id', organizationId);
 
@@ -61,8 +58,7 @@ export async function createWorkOrderTask(input: Omit<WorkOrderTask, 'id'>): Pro
     const validatedData = WorkOrderTaskSchema.parse(input);
     const supabase = await createClient();
 
-    const { data, error } = await supabase
-        .from('work_order_tasks')
+    const { data, error } = await (supabase.from as any)('work_order_tasks')
         .insert(validatedData)
         .select()
         .single();

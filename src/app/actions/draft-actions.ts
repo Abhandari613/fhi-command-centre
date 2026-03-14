@@ -69,8 +69,7 @@ export async function approveWorkOrderDraft(draftId: string, formData: FormData)
     }
 
     // 2. Create the real Work Order
-    const { data: newWo, error: woError } = await supabase
-        .from('work_orders')
+    const { data: newWo, error: woError } = await (supabase.from as any)('work_orders')
         .insert({
             organization_id: orgId,
             client_id: clientId,
@@ -85,8 +84,7 @@ export async function approveWorkOrderDraft(draftId: string, formData: FormData)
     }
 
     // 3. Create the Work Order Task (trade type and description)
-    const { error: taskError } = await supabase
-        .from('work_order_tasks')
+    const { error: taskError } = await (supabase.from as any)('work_order_tasks')
         .insert({
             organization_id: orgId,
             work_order_id: newWo.id,

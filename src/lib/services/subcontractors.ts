@@ -17,7 +17,7 @@ export async function getSubcontractors(organizationId: string): Promise<Subcont
         console.error('Failed to fetch subcontractors', { error, organizationId });
         throw error;
     }
-    return data as Subcontractor[];
+    return data as unknown as Subcontractor[];
 }
 
 export async function createSubcontractor(input: Omit<Subcontractor, 'id'>): Promise<Subcontractor> {
@@ -34,7 +34,7 @@ export async function createSubcontractor(input: Omit<Subcontractor, 'id'>): Pro
         console.error('Failed to create subcontractor', { error, input });
         throw error;
     }
-    return data as Subcontractor;
+    return data as unknown as Subcontractor;
 }
 
 export async function updateSubcontractor(id: string, input: Partial<Subcontractor>): Promise<Subcontractor> {
@@ -58,5 +58,5 @@ export async function updateSubcontractor(id: string, input: Partial<Subcontract
         console.error('Failed to update subcontractor', { error, id, input });
         throw error;
     }
-    return data as Subcontractor;
+    return data as unknown as Subcontractor;
 }

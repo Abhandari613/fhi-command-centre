@@ -77,8 +77,7 @@ export async function getUncategorizedTransactions() {
     const deposits = data.filter(t => t.amount > 0);
     if (deposits.length > 0) {
         // Fetch potential Work Orders
-        const { data: wos } = await supabase
-            .from('work_orders')
+        const { data: wos } = await (supabase.from as any)('work_orders')
             .select('id, property_address_or_unit, status')
             .in('status', ['Scheduled', 'In Progress'])
             .limit(5);

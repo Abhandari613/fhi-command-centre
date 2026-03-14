@@ -6,7 +6,6 @@ import { AnimatedButton } from "@/components/ui/AnimatedButton";
 import { Camera, Check, Loader2, ScanLine } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import { Database } from "@/types/supabase";
 import { motion } from "framer-motion";
 import { GlassSelect } from "@/components/ui/GlassSelect";
 
@@ -21,8 +20,7 @@ export function ReceiptScanner() {
 
     useEffect(() => {
         const fetchWOs = async () => {
-            const { data } = await supabase
-                .from('work_orders')
+            const { data } = await (supabase.from as any)('work_orders')
                 .select('id, property_address_or_unit, clients(name)')
                 .in('status', ['Scheduled', 'In Progress'])
                 .order('created_at', { ascending: false });

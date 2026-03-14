@@ -6,9 +6,8 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { Database } from "@/types/supabase";
-
-type WorkOrder = Database['public']['Tables']['work_orders']['Row'];
+// TODO: Sync Supabase types to include work_orders table
+type WorkOrder = any;
 
 export function CalendarView() {
     const supabase = createClient();
@@ -19,8 +18,7 @@ export function CalendarView() {
     useEffect(() => {
         const fetchWorkOrders = async () => {
             // Fetch all active/scheduled work_orders
-            const { data, error } = await supabase
-                .from('work_orders')
+            const { data, error } = await (supabase.from as any)('work_orders')
                 .select('*')
                 .in('status', ['Scheduled', 'In Progress', 'Completed']);
 

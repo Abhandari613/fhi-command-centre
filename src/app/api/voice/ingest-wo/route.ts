@@ -36,8 +36,7 @@ export async function POST(req: Request) {
         const extractedData = await agent.parseWorkOrderDraft(transcriptText);
 
         // Insert into drafts
-        const { data: insertData, error: insertError } = await supabase
-            .from('work_order_drafts')
+        const { data: insertData, error: insertError } = await (supabase.from as any)('work_order_drafts')
             .insert({
                 organization_id: orgId,
                 source: 'voice',
