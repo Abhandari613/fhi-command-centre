@@ -26,7 +26,7 @@ ADD COLUMN IF NOT EXISTS source_email_body TEXT;
 ALTER TABLE public.jobs DROP CONSTRAINT IF EXISTS jobs_status_check;
 ALTER TABLE public.jobs ADD CONSTRAINT jobs_status_check
   CHECK (status IN (
-    'draft', 'sent', 'approved', 'scheduled', 'in_progress', 'completed', 'cancelled',
+    'draft', 'sent', 'approved', 'active', 'scheduled', 'in_progress', 'completed', 'cancelled',
     'incoming', 'quoted', 'invoiced', 'paid'
   ));
 
