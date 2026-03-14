@@ -39,7 +39,7 @@ async function getGCalTokens(supabase: any, orgId: string) {
         .update({
           access_token: refreshed.access_token,
           token_expiry: new Date(
-            refreshed.expiry_date || Date.now() + 3600000
+            refreshed.expiry_date || Date.now() + 3600000,
           ).toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -104,7 +104,7 @@ export async function scheduleJob(
   jobId: string,
   startDate: string,
   endDate: string,
-  subIds: string[]
+  subIds: string[],
 ): Promise<ActionResult<{ gcalEventId?: string }>> {
   const supabase = await getDb();
   const {
@@ -115,9 +115,7 @@ export async function scheduleJob(
   // Get job details
   const { data: job } = await supabase
     .from("jobs")
-    .select(
-      "id, job_number, property_address, organization_id, status"
-    )
+    .select("id, job_number, property_address, organization_id, status")
     .eq("id", jobId)
     .single();
 
@@ -223,6 +221,16 @@ export async function scheduleJob(
     gcalSynced: !!gcalEventId,
   });
 
+  // Step 6: Auto-dispatch — if no subs were manually assigned, trigger AI matching
+  if (subIds.length === 0) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    fetch(`${appUrl}/api/jobs/auto-dispatch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId }),
+    }).catch((err) => console.error("Auto-dispatch trigger failed:", err));
+  }
+
   revalidatePath(`/ops/jobs/${jobId}`);
   revalidatePath("/ops/schedule");
   return { success: true, data: { gcalEventId: gcalEventId || undefined } };
@@ -231,7 +239,7 @@ export async function scheduleJob(
 export async function rescheduleJob(
   jobId: string,
   newStart: string,
-  newEnd: string
+  newEnd: string,
 ): Promise<ActionResult<void>> {
   const supabase = await getDb();
 
@@ -294,12 +302,60 @@ export async function getScheduledJobs() {
   const { data } = await supabase
     .from("jobs")
     .select(
-      "id, job_number, property_address, status, start_date, end_date, gcal_event_id"
+      "id, job_number, property_address, status, start_date, end_date, gcal_event_id",
     )
     .eq("organization_id", profile.organization_id)
-    .in("status", ["scheduled", "in_progress", "active", "completed"])
+    .in("status", ["scheduled", "in_progress", "completed"])
     .not("start_date", "is", null)
     .order("start_date");
 
   return data || [];
+}
+
+// --- AI Schedule Suggestions ---
+
+export type ScheduleSuggestion = {
+  date: string;
+  reason: string;
+  nearby_jobs: string[];
+  confidence: "high" | "medium" | "low";
+};
+
+export async function getScheduleSuggestions(
+  jobId: string,
+): Promise<{ suggestions: ScheduleSuggestion[]; notes: string }> {
+  try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const res = await fetch(`${appUrl}/api/ai/suggest-schedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId }),
+    });
+    const data = await res.json();
+    return {
+      suggestions: data.suggestions || [],
+      notes: data.notes || "",
+    };
+  } catch {
+    return { suggestions: [], notes: "Failed to get suggestions" };
+  }
+}
+
+export async function quickScheduleJob(jobId: string, date: string) {
+  const supabase = await getDb();
+
+  const { error } = await supabase
+    .from("jobs")
+    .update({
+      due_date: date,
+      status: "scheduled",
+    } as any)
+    .eq("id", jobId);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/ops/schedule");
+  revalidatePath(`/ops/jobs/${jobId}`);
+  return { success: true };
 }

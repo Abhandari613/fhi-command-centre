@@ -57,7 +57,7 @@ export function RescopeReviewPanel({
     setProcessing("all");
     await acceptRescopeTasks(
       jobId,
-      visibleTasks.map((t) => t.id)
+      visibleTasks.map((t) => t.id),
     );
     setProcessing(null);
     onUpdate();
@@ -67,10 +67,10 @@ export function RescopeReviewPanel({
     setProcessing("all");
     await dismissRescopeTasks(
       jobId,
-      visibleTasks.map((t) => t.id)
+      visibleTasks.map((t) => t.id),
     );
     setDismissed(
-      (prev) => new Set([...prev, ...visibleTasks.map((t) => t.id)])
+      (prev) => new Set([...prev, ...visibleTasks.map((t) => t.id)]),
     );
     setProcessing(null);
   };

@@ -24,9 +24,7 @@ export default async function JobFinancePage({
     .single();
 
   if (!job) {
-    return (
-      <div className="p-8 text-center opacity-50">Job not found</div>
-    );
+    return <div className="p-8 text-center opacity-50">Job not found</div>;
   }
 
   const [profitSummary, payouts, subs] = await Promise.all([
@@ -35,7 +33,9 @@ export default async function JobFinancePage({
     getSubcontractors(),
   ]);
 
-  const revenue = Number(profitSummary?.revenue || (job as any).final_invoice_amount || 0);
+  const revenue = Number(
+    profitSummary?.revenue || (job as any).final_invoice_amount || 0,
+  );
   const totalPayouts = Number(profitSummary?.total_payouts || 0);
   const grossProfit = revenue - totalPayouts;
   const marginPct = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
@@ -128,7 +128,10 @@ export default async function JobFinancePage({
         ) : (
           <div className="space-y-2">
             {payouts.map((p: any) => (
-              <GlassCard key={p.id} className="p-4 flex justify-between items-center">
+              <GlassCard
+                key={p.id}
+                className="p-4 flex justify-between items-center"
+              >
                 <div>
                   <p className="font-medium text-sm">
                     {p.subcontractor?.name || "Unknown Sub"}

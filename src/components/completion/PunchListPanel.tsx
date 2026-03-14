@@ -10,10 +10,25 @@ type PunchListItem = {
   status: string;
 };
 
-const statusConfig: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-  open: { icon: <AlertTriangle className="w-4 h-4" />, color: "text-red-400", label: "Open" },
-  in_progress: { icon: <Clock className="w-4 h-4" />, color: "text-yellow-400", label: "In Progress" },
-  resolved: { icon: <CheckCircle className="w-4 h-4" />, color: "text-green-400", label: "Resolved" },
+const statusConfig: Record<
+  string,
+  { icon: React.ReactNode; color: string; label: string }
+> = {
+  open: {
+    icon: <AlertTriangle className="w-4 h-4" />,
+    color: "text-red-400",
+    label: "Open",
+  },
+  in_progress: {
+    icon: <Clock className="w-4 h-4" />,
+    color: "text-yellow-400",
+    label: "In Progress",
+  },
+  resolved: {
+    icon: <CheckCircle className="w-4 h-4" />,
+    color: "text-green-400",
+    label: "Resolved",
+  },
 };
 
 export function PunchListPanel({ items }: { items: PunchListItem[] }) {
@@ -42,7 +57,9 @@ export function PunchListPanel({ items }: { items: PunchListItem[] }) {
               <span className={`mt-0.5 ${config.color}`}>{config.icon}</span>
               <div className="flex-1">
                 <p className="text-sm">{item.description}</p>
-                <span className={`text-xs ${config.color}`}>{config.label}</span>
+                <span className={`text-xs ${config.color}`}>
+                  {config.label}
+                </span>
               </div>
               {item.photo_url && (
                 <img

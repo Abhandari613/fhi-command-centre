@@ -24,7 +24,7 @@ export async function getUnconfirmedTasks(jobId: string) {
 
 export async function acceptRescopeTasks(
   jobId: string,
-  taskIds: string[]
+  taskIds: string[],
 ): Promise<ActionResult<void>> {
   const supabase = await createClient();
 
@@ -47,14 +47,11 @@ export async function acceptRescopeTasks(
 
 export async function dismissRescopeTasks(
   jobId: string,
-  taskIds: string[]
+  taskIds: string[],
 ): Promise<ActionResult<void>> {
   const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("job_tasks")
-    .delete()
-    .in("id", taskIds);
+  const { error } = await supabase.from("job_tasks").delete().in("id", taskIds);
 
   if (error) {
     return { success: false, error: error.message };
@@ -70,7 +67,7 @@ export async function dismissRescopeTasks(
 
 export async function triggerRescope(
   jobId: string,
-  photoUrls: string[]
+  photoUrls: string[],
 ): Promise<ActionResult<{ newTasks: string[]; count: number }>> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

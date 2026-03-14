@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     if (!token || !fileBase64 || !fileName) {
       return NextResponse.json(
         { error: "token, fileBase64, and fileName are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     if (!supabaseUrl || !supabaseKey) {
       return NextResponse.json(
         { error: "Server configuration error" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     if (assignError || !assignment) {
       return NextResponse.json(
         { error: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     if (uploadError) {
       return NextResponse.json(
         { error: "Upload failed: " + uploadError.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     if (dbError) {
       return NextResponse.json(
         { error: "DB insert failed: " + dbError.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 

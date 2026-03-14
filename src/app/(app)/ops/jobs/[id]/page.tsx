@@ -21,21 +21,21 @@ import {
   ClipboardList,
   DollarSign,
   ClipboardCheck,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 
 const STATUS_LABELS: Record<string, string> = {
   incoming: "Incoming",
-  quoted: "Quoted",
-  in_progress: "In Progress",
-  invoiced: "Invoiced",
-  paid: "Paid",
   draft: "Draft",
+  quoted: "Quoted",
   sent: "Sent",
   approved: "Approved",
-  active: "Active",
   scheduled: "Scheduled",
+  in_progress: "In Progress",
   completed: "Completed",
+  invoiced: "Invoiced",
+  paid: "Paid",
   cancelled: "Cancelled",
 };
 
@@ -43,9 +43,9 @@ const STATUS_COLORS: Record<string, string> = {
   incoming: "bg-blue-500/20 text-blue-400",
   draft: "bg-gray-500/20 text-gray-400",
   quoted: "bg-yellow-500/20 text-yellow-400",
+  sent: "bg-indigo-500/20 text-indigo-400",
   approved: "bg-emerald-500/20 text-emerald-400",
-  active: "bg-teal-500/20 text-teal-400",
-  scheduled: "bg-indigo-500/20 text-indigo-400",
+  scheduled: "bg-sky-500/20 text-sky-400",
   in_progress: "bg-orange-500/20 text-orange-400",
   completed: "bg-cyan-500/20 text-cyan-400",
   invoiced: "bg-purple-500/20 text-purple-400",
@@ -161,12 +161,19 @@ export default function JobDetailPage() {
   const confirmedTasks = tasks.filter((t: any) => t.is_confirmed);
   const quotedTotal = confirmedTasks.reduce(
     (sum: number, t: any) => sum + (t.quantity || 1) * (t.unit_price || 0),
-    0
+    0,
   );
   const photos = attachments.filter((a: any) => a.file_type === "photo");
   const statusColor = STATUS_COLORS[job.status] || "bg-white/10 text-white/60";
-  const showCompletionLink = ["in_progress", "completed", "invoiced", "paid"].includes(job.status);
-  const showFinanceLink = ["completed", "invoiced", "paid"].includes(job.status);
+
+  // Status-aware action visibility (aligned to 10-stop workflow)
+  const showScopeLink = ["incoming", "draft", "quoted"].includes(job.status);
+  const showQuoteLink = ["draft", "quoted", "sent"].includes(job.status);
+  const showScheduleLink = ["approved"].includes(job.status);
+  const showCompletionLink = ["in_progress", "completed"].includes(job.status);
+  const showFinanceLink = ["completed", "invoiced", "paid"].includes(
+    job.status,
+  );
 
   return (
     <div className="space-y-5">
@@ -227,13 +234,17 @@ export default function JobDetailPage() {
         {(job.property_address || job.address) && (
           <div className="flex items-start gap-3">
             <MapPin className="w-4 h-4 mt-0.5 opacity-50 flex-shrink-0" />
-            <span className="text-sm">{job.property_address || job.address}</span>
+            <span className="text-sm">
+              {job.property_address || job.address}
+            </span>
           </div>
         )}
         {job.requester_email && (
           <div className="flex items-start gap-3">
             <Mail className="w-4 h-4 mt-0.5 opacity-50 flex-shrink-0" />
-            <span className="text-sm">{job.requester_name || job.requester_email}</span>
+            <span className="text-sm">
+              {job.requester_name || job.requester_email}
+            </span>
           </div>
         )}
         {job.due_date && (
@@ -286,7 +297,11 @@ export default function JobDetailPage() {
             ) : (
               <CameraIcon className="w-3.5 h-3.5" />
             )}
-            {rescopeLoading ? "Scoping..." : uploading ? "Uploading..." : "Add On-Site Photos"}
+            {rescopeLoading
+              ? "Scoping..."
+              : uploading
+                ? "Uploading..."
+                : "Add On-Site Photos"}
           </button>
           <input
             ref={fileInputRef}
@@ -336,22 +351,35 @@ export default function JobDetailPage() {
         </GlassCard>
       )}
 
-      {/* Action links */}
+      {/* Action links — context-aware per workflow stop */}
       <div className="space-y-3">
-        <Link
-          href={`/ops/jobs/${id}/scope`}
-          className="w-full bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
-        >
-          <ClipboardList className="w-5 h-5" />
-          Edit Scope
-        </Link>
-        <Link
-          href={`/ops/jobs/${id}/quote`}
-          className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
-        >
-          <FileText className="w-5 h-5" />
-          Build Quote
-        </Link>
+        {showScopeLink && (
+          <Link
+            href={`/ops/jobs/${id}/scope`}
+            className="w-full bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
+          >
+            <ClipboardList className="w-5 h-5" />
+            Edit Scope
+          </Link>
+        )}
+        {showQuoteLink && (
+          <Link
+            href={`/ops/jobs/${id}/quote`}
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
+          >
+            <FileText className="w-5 h-5" />
+            Build Quote
+          </Link>
+        )}
+        {showScheduleLink && (
+          <Link
+            href="/ops/schedule"
+            className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
+          >
+            <Calendar className="w-5 h-5" />
+            Schedule Job
+          </Link>
+        )}
         {showCompletionLink && (
           <Link
             href={`/ops/jobs/${id}/complete`}

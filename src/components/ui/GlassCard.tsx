@@ -7,7 +7,12 @@ interface GlassCardProps extends HTMLMotionProps<"div"> {
   intensity?: "normal" | "bright" | "panel" | "solid";
 }
 
-export function GlassCard({ children, className, intensity = "normal", ...props }: GlassCardProps) {
+export function GlassCard({
+  children,
+  className,
+  intensity = "normal",
+  ...props
+}: GlassCardProps) {
   const intensityClass = {
     normal: "glass",
     bright: "glass-bright",
@@ -24,7 +29,7 @@ export function GlassCard({ children, className, intensity = "normal", ...props 
       className={cn(
         intensityClass,
         "rounded-lg border border-white/[0.06] shadow-xl",
-        className
+        className,
       )}
       {...props}
     >

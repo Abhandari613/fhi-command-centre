@@ -24,7 +24,7 @@ export async function getJobForQuote(jobId: string) {
 
 export async function updateTaskPricing(
   taskId: string,
-  updates: { quantity: number; unit_price: number; description: string }
+  updates: { quantity: number; unit_price: number; description: string },
 ) {
   const supabase = await createClient();
 

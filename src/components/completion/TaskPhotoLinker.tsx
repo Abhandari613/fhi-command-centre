@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { linkPhotoToTask, unlinkPhotoFromTask } from "@/app/actions/completion-actions";
+import {
+  linkPhotoToTask,
+  unlinkPhotoFromTask,
+} from "@/app/actions/completion-actions";
 import { CheckCircle, Circle, Loader2, Link2, Unlink } from "lucide-react";
 
 type Task = {
@@ -63,8 +66,8 @@ export function TaskPhotoLinker({
               selectedTask === task.id
                 ? "bg-primary/20 border border-primary/40"
                 : task.hasPhoto
-                ? "bg-green-500/10 border border-green-500/20"
-                : "bg-white/5 border border-white/10"
+                  ? "bg-green-500/10 border border-green-500/20"
+                  : "bg-white/5 border border-white/10"
             }`}
           >
             {task.hasPhoto ? (

@@ -90,10 +90,7 @@ export default function CompletionReviewPage() {
       .update({ status: "approved", approved_at: new Date().toISOString() })
       .eq("id", report.id);
 
-    await supabase
-      .from("jobs")
-      .update({ status: "invoiced" })
-      .eq("id", jobId);
+    await supabase.from("jobs").update({ status: "invoiced" }).eq("id", jobId);
 
     await supabase.from("job_events").insert({
       job_id: jobId,
@@ -129,7 +126,11 @@ export default function CompletionReviewPage() {
     await supabase.from("job_events").insert({
       job_id: jobId,
       event_type: "punch_list_created",
-      metadata: { reportId: report.id, itemCount: validItems.length, source: "portal" },
+      metadata: {
+        reportId: report.id,
+        itemCount: validItems.length,
+        source: "portal",
+      },
     });
 
     setSubmittingPunch(false);
@@ -187,7 +188,9 @@ export default function CompletionReviewPage() {
               <AlertTriangle className="w-6 h-6 text-yellow-600" />
             </div>
             <div>
-              <h3 className="font-bold text-yellow-800">Punch List Submitted</h3>
+              <h3 className="font-bold text-yellow-800">
+                Punch List Submitted
+              </h3>
               <p className="text-sm text-yellow-600">
                 Frank has been notified of the items that need attention.
               </p>
@@ -198,9 +201,7 @@ export default function CompletionReviewPage() {
         {/* Task list with photos */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <h2 className="font-bold text-gray-800">
-              Tasks ({tasks.length})
-            </h2>
+            <h2 className="font-bold text-gray-800">Tasks ({tasks.length})</h2>
           </div>
           <div className="divide-y divide-gray-100">
             {tasks.map((task: any) => (

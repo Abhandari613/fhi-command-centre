@@ -38,11 +38,13 @@ export async function getSavedRates(): Promise<Record<string, number>> {
 
   if (!data || data.length === 0) {
     // Seed defaults on first access
-    const rows = Object.entries(DEFAULT_RATES).map(([task_name, unit_price]) => ({
-      organization_id: orgId,
-      task_name,
-      unit_price,
-    }));
+    const rows = Object.entries(DEFAULT_RATES).map(
+      ([task_name, unit_price]) => ({
+        organization_id: orgId,
+        task_name,
+        unit_price,
+      }),
+    );
     await (supabase.from("saved_rates" as any) as any).insert(rows);
     return DEFAULT_RATES;
   }
@@ -59,17 +61,15 @@ export async function upsertRate(taskName: string, unitPrice: number) {
   const orgId = await getOrgId();
   if (!orgId) return { success: false, error: "No organization" };
 
-  const { error } = await (supabase
-    .from("saved_rates" as any) as any)
-    .upsert(
-      {
-        organization_id: orgId,
-        task_name: taskName,
-        unit_price: unitPrice,
-        updated_at: new Date().toISOString(),
-      } as any,
-      { onConflict: "organization_id,task_name" }
-    );
+  const { error } = await (supabase.from("saved_rates" as any) as any).upsert(
+    {
+      organization_id: orgId,
+      task_name: taskName,
+      unit_price: unitPrice,
+      updated_at: new Date().toISOString(),
+    } as any,
+    { onConflict: "organization_id,task_name" },
+  );
 
   if (error) return { success: false, error: error.message };
   return { success: true };

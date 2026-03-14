@@ -36,7 +36,7 @@ export function RecordPayoutForm({
       jobId,
       subId,
       parseFloat(amount),
-      description || "Sub payout"
+      description || "Sub payout",
     );
 
     if (!result.success) {

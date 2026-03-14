@@ -29,7 +29,7 @@ export async function getJobWithAttachments(jobId: string) {
 
 export async function saveJobTasks(
   jobId: string,
-  tasks: { description: string; is_confirmed: boolean }[]
+  tasks: { description: string; is_confirmed: boolean }[],
 ) {
   const supabase = await createClient();
 

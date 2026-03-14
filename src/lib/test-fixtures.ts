@@ -7,7 +7,7 @@ export type TestFixture = {
   id: string;
   name: string;
   description: string;
-  scenario: 'new_work_order' | 'add_photos' | 'punch_list';
+  scenario: "new_work_order" | "add_photos" | "punch_list";
   payload: {
     from: { address: string; name?: string };
     subject: string;
@@ -23,13 +23,17 @@ export type TestFixture = {
 
 export const TEST_FIXTURES: TestFixture[] = [
   {
-    id: 'meryl-bathroom-remodel',
-    name: 'Meryl — Bathroom Remodel',
-    description: 'Standard bathroom remodel request with painting and drywall. Unit 305.',
-    scenario: 'new_work_order',
+    id: "meryl-bathroom-remodel",
+    name: "Meryl — Bathroom Remodel",
+    description:
+      "Standard bathroom remodel request with painting and drywall. Unit 305.",
+    scenario: "new_work_order",
     payload: {
-      from: { address: 'meryl@allprofessionaltrades.com', name: 'Meryl Thompson' },
-      subject: 'Work Order: 42 Oakwood Drive Unit 305 - Bathroom Remodel',
+      from: {
+        address: "meryl@allprofessionaltrades.com",
+        name: "Meryl Thompson",
+      },
+      subject: "Work Order: 42 Oakwood Drive Unit 305 - Bathroom Remodel",
       text: `Hi Frank,
 
 We need a bathroom remodel at 42 Oakwood Drive, Unit 305. The tenant moved out and the bathroom needs work before the new tenant moves in.
@@ -49,18 +53,21 @@ Meryl Thompson
 All Professional Trades Inc.`,
     },
     expectedFields: {
-      trade_type: 'Painting',
+      trade_type: "Painting",
       has_address: true,
     },
   },
   {
-    id: 'cole-hvac-repair',
-    name: 'Cole — HVAC Emergency (Rush)',
-    description: 'Urgent HVAC repair request. Should trigger rush detection.',
-    scenario: 'new_work_order',
+    id: "cole-hvac-repair",
+    name: "Cole — HVAC Emergency (Rush)",
+    description: "Urgent HVAC repair request. Should trigger rush detection.",
+    scenario: "new_work_order",
     payload: {
-      from: { address: 'cole@allprofessionaltrades.com', name: 'Cole Mitchell' },
-      subject: 'URGENT: 18 Pine Street Unit 102 - No Heat',
+      from: {
+        address: "cole@allprofessionaltrades.com",
+        name: "Cole Mitchell",
+      },
+      subject: "URGENT: 18 Pine Street Unit 102 - No Heat",
       text: `Frank,
 
 This is urgent — tenant at 18 Pine Street, Unit 102 has no heat. Need someone ASAP.
@@ -73,19 +80,22 @@ Cole Mitchell
 All Professional Trades Inc.`,
     },
     expectedFields: {
-      trade_type: 'HVAC',
-      urgency: 'rush',
+      trade_type: "HVAC",
+      urgency: "rush",
       has_address: true,
     },
   },
   {
-    id: 'meryl-kitchen-painting',
-    name: 'Meryl — Kitchen & Living Room Paint',
-    description: 'Multi-room painting job with specific color requests.',
-    scenario: 'new_work_order',
+    id: "meryl-kitchen-painting",
+    name: "Meryl — Kitchen & Living Room Paint",
+    description: "Multi-room painting job with specific color requests.",
+    scenario: "new_work_order",
     payload: {
-      from: { address: 'meryl@allprofessionaltrades.com', name: 'Meryl Thompson' },
-      subject: 'Paint Job: 7 Elm Court Unit 201 - Kitchen & Living Room',
+      from: {
+        address: "meryl@allprofessionaltrades.com",
+        name: "Meryl Thompson",
+      },
+      subject: "Paint Job: 7 Elm Court Unit 201 - Kitchen & Living Room",
       text: `Frank,
 
 Unit 201 at 7 Elm Court needs painting in the kitchen and living room areas.
@@ -100,19 +110,23 @@ The unit is vacant so you can schedule at your convenience. No rush on this one.
 Meryl`,
     },
     expectedFields: {
-      trade_type: 'Painting',
-      urgency: 'standard',
+      trade_type: "Painting",
+      urgency: "standard",
       has_address: true,
     },
   },
   {
-    id: 'cole-electrical-outlets',
-    name: 'Cole — Electrical Outlets',
-    description: 'Electrical work needed — outlet replacement and GFCI install.',
-    scenario: 'new_work_order',
+    id: "cole-electrical-outlets",
+    name: "Cole — Electrical Outlets",
+    description:
+      "Electrical work needed — outlet replacement and GFCI install.",
+    scenario: "new_work_order",
     payload: {
-      from: { address: 'cole@allprofessionaltrades.com', name: 'Cole Mitchell' },
-      subject: 'Electrical: 55 Birch Lane Unit 404 - Outlet Issues',
+      from: {
+        address: "cole@allprofessionaltrades.com",
+        name: "Cole Mitchell",
+      },
+      subject: "Electrical: 55 Birch Lane Unit 404 - Outlet Issues",
       text: `Hey Frank,
 
 Got a few electrical items at 55 Birch Lane, Unit 404:
@@ -129,18 +143,21 @@ Thanks,
 Cole`,
     },
     expectedFields: {
-      trade_type: 'Electrical',
+      trade_type: "Electrical",
       has_address: true,
     },
   },
   {
-    id: 'meryl-turnover-full',
-    name: 'Meryl — Full Unit Turnover',
-    description: 'Comprehensive unit turnover with multiple trades.',
-    scenario: 'new_work_order',
+    id: "meryl-turnover-full",
+    name: "Meryl — Full Unit Turnover",
+    description: "Comprehensive unit turnover with multiple trades.",
+    scenario: "new_work_order",
     payload: {
-      from: { address: 'meryl@allprofessionaltrades.com', name: 'Meryl Thompson' },
-      subject: 'Full Turnover: 123 Maple Avenue Unit 8',
+      from: {
+        address: "meryl@allprofessionaltrades.com",
+        name: "Meryl Thompson",
+      },
+      subject: "Full Turnover: 123 Maple Avenue Unit 8",
       text: `Hi Frank,
 
 We have a full unit turnover at 123 Maple Avenue, Unit 8. Previous tenant just moved out and we need the following:
@@ -170,18 +187,21 @@ Thanks,
 Meryl`,
     },
     expectedFields: {
-      trade_type: 'General',
+      trade_type: "General",
       has_address: true,
     },
   },
   {
-    id: 'neil-punch-list',
-    name: 'Neil — Punch List Response',
-    description: 'Neil sends back issues after inspecting a completed job.',
-    scenario: 'punch_list',
+    id: "neil-punch-list",
+    name: "Neil — Punch List Response",
+    description: "Neil sends back issues after inspecting a completed job.",
+    scenario: "punch_list",
     payload: {
-      from: { address: 'neilh@allprofessionaltrades.com', name: 'Neil Henderson' },
-      subject: 'Re: Completion Report FHI-2026-001 — Punch List Items',
+      from: {
+        address: "neilh@allprofessionaltrades.com",
+        name: "Neil Henderson",
+      },
+      subject: "Re: Completion Report FHI-2026-001 — Punch List Items",
       text: `Frank,
 
 Inspected the unit today. Most of the work looks good but I found a few things that need to be addressed:

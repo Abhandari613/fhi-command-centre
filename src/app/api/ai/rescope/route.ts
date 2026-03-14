@@ -13,7 +13,9 @@ Look at the new photo(s) and list ONLY tasks that are NOT already covered by the
 
 Return a JSON array of strings with specific, trade-relevant task descriptions. If no new work is visible, return an empty array []. Return only the JSON array, no other text.`;
 
-async function fetchImageAsBase64(url: string): Promise<{ data: string; mediaType: string }> {
+async function fetchImageAsBase64(
+  url: string,
+): Promise<{ data: string; mediaType: string }> {
   const res = await fetch(url);
   const buffer = await res.arrayBuffer();
   const data = Buffer.from(buffer).toString("base64");
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest) {
     if (!jobId || !photoUrls?.length) {
       return NextResponse.json(
         { error: "jobId and photoUrls required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,9 +45,9 @@ export async function POST(req: NextRequest) {
       .eq("job_id", jobId)
       .eq("is_confirmed", true);
 
-    const existingList = (existingTasks || [])
-      .map((t: any) => `- ${t.description}`)
-      .join("\n") || "- (none yet)";
+    const existingList =
+      (existingTasks || []).map((t: any) => `- ${t.description}`).join("\n") ||
+      "- (none yet)";
 
     const prompt = RESCOPE_PROMPT.replace("{EXISTING_TASKS}", existingList);
 
@@ -57,7 +59,11 @@ export async function POST(req: NextRequest) {
         type: "image",
         source: {
           type: "base64",
-          media_type: mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+          media_type: mediaType as
+            | "image/jpeg"
+            | "image/png"
+            | "image/gif"
+            | "image/webp",
           data,
         },
       });
@@ -69,20 +75,21 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "user",
-          content: [
-            ...imageBlocks,
-            { type: "text", text: prompt },
-          ],
+          content: [...imageBlocks, { type: "text", text: prompt }],
         },
       ],
     });
 
     const textBlock = response.content.find((b) => b.type === "text");
-    const text = textBlock && "text" in textBlock ? textBlock.text.trim() : "[]";
+    const text =
+      textBlock && "text" in textBlock ? textBlock.text.trim() : "[]";
 
     let newTasks: string[] = [];
     try {
-      const cleaned = text.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+      const cleaned = text
+        .replace(/```json?\n?/g, "")
+        .replace(/```/g, "")
+        .trim();
       const parsed = JSON.parse(cleaned);
       if (Array.isArray(parsed)) {
         newTasks = parsed;
@@ -130,7 +137,7 @@ export async function POST(req: NextRequest) {
     console.error("Rescope AI error:", err);
     return NextResponse.json(
       { error: err.message || "AI rescoping failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

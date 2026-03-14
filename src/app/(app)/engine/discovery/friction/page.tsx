@@ -1,3 +1,3 @@
 export default function FrictionPage() {
-    return <div>Friction Mapping</div>;
+  return <div>Friction Mapping</div>;
 }

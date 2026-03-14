@@ -18,9 +18,13 @@ import {
   ChevronRight,
   Plus,
   Loader2,
+  Send,
+  ThumbsUp,
+  Calendar,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const STATUS_CONFIG: Record<
   string,
@@ -31,10 +35,30 @@ const STATUS_CONFIG: Record<
     icon: <Inbox className="w-5 h-5" />,
     color: "text-blue-400",
   },
+  draft: {
+    label: "Draft",
+    icon: <FileText className="w-5 h-5" />,
+    color: "text-gray-400",
+  },
   quoted: {
     label: "Quoted",
     icon: <FileText className="w-5 h-5" />,
     color: "text-yellow-400",
+  },
+  sent: {
+    label: "Sent",
+    icon: <Send className="w-5 h-5" />,
+    color: "text-indigo-400",
+  },
+  approved: {
+    label: "Approved",
+    icon: <ThumbsUp className="w-5 h-5" />,
+    color: "text-emerald-400",
+  },
+  scheduled: {
+    label: "Scheduled",
+    icon: <Calendar className="w-5 h-5" />,
+    color: "text-sky-400",
   },
   in_progress: {
     label: "In Progress",
@@ -58,7 +82,18 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const STATUS_ORDER = ["incoming", "quoted", "in_progress", "completed", "invoiced", "paid"];
+const STATUS_ORDER = [
+  "incoming",
+  "draft",
+  "quoted",
+  "sent",
+  "approved",
+  "scheduled",
+  "in_progress",
+  "completed",
+  "invoiced",
+  "paid",
+];
 
 function sortJobs(jobs: DashboardJob[]): DashboardJob[] {
   return [...jobs].sort((a, b) => {
@@ -106,7 +141,7 @@ export default function DashboardPage() {
       acc[status] = sortJobs(jobs.filter((j) => j.status === status));
       return acc;
     },
-    {} as Record<string, DashboardJob[]>
+    {} as Record<string, DashboardJob[]>,
   );
 
   return (
@@ -118,12 +153,15 @@ export default function DashboardPage() {
             {jobs.length} active job{jobs.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <Link
-          href="/ingest"
-          className="bg-blue-600 hover:bg-blue-500 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg shadow-blue-600/25 transition-all active:scale-95"
-        >
-          <Plus className="w-6 h-6" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <NotificationBell />
+          <Link
+            href="/ingest"
+            className="bg-blue-600 hover:bg-blue-500 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg shadow-blue-600/25 transition-all active:scale-95"
+          >
+            <Plus className="w-6 h-6" />
+          </Link>
+        </div>
       </header>
 
       {STATUS_ORDER.map((status) => {
@@ -172,15 +210,64 @@ export default function DashboardPage() {
                               {job.due_date && (
                                 <span>
                                   Due{" "}
-                                  {new Date(job.due_date).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
+                                  {new Date(job.due_date).toLocaleDateString(
+                                    "en-US",
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                    },
+                                  )}
                                 </span>
                               )}
                               {(job.quoted_total ?? 0) > 0 && (
                                 <span className="text-green-400 font-semibold">
                                   ${(job.quoted_total ?? 0).toFixed(0)}
+                                </span>
+                              )}
+                              {/* Days outstanding badge for invoiced jobs */}
+                              {status === "invoiced" &&
+                                (job as any).invoiced_at && (
+                                  <span
+                                    className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
+                                      Math.floor(
+                                        (Date.now() -
+                                          new Date(
+                                            (job as any).invoiced_at,
+                                          ).getTime()) /
+                                          86400000,
+                                      ) > 60
+                                        ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                                        : Math.floor(
+                                              (Date.now() -
+                                                new Date(
+                                                  (job as any).invoiced_at,
+                                                ).getTime()) /
+                                                86400000,
+                                            ) > 30
+                                          ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                          : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                    }`}
+                                  >
+                                    {Math.floor(
+                                      (Date.now() -
+                                        new Date(
+                                          (job as any).invoiced_at,
+                                        ).getTime()) /
+                                        86400000,
+                                    )}
+                                    d
+                                  </span>
+                                )}
+                              {/* Paid date for paid jobs */}
+                              {status === "paid" && (job as any).paid_at && (
+                                <span className="text-emerald-400 font-semibold">
+                                  Paid{" "}
+                                  {new Date(
+                                    (job as any).paid_at,
+                                  ).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
                                 </span>
                               )}
                             </div>

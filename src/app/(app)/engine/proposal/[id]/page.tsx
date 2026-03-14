@@ -1,3 +1,7 @@
-export default function ProposalDetailPage({ params }: { params: { id: string } }) {
-    return <div>Proposal Detail {params.id}</div>;
+export default function ProposalDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  return <div>Proposal Detail {params.id}</div>;
 }

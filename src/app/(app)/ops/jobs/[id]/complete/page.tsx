@@ -134,9 +134,7 @@ export default function CompletionPage() {
           <div className="flex items-center gap-3">
             <Send className="w-5 h-5 text-blue-400" />
             <div>
-              <h3 className="text-sm font-bold text-blue-400">
-                Report Sent
-              </h3>
+              <h3 className="text-sm font-bold text-blue-400">Report Sent</h3>
               <p className="text-xs opacity-60">
                 Waiting for Neil&apos;s inspection and approval.
               </p>

@@ -16,7 +16,16 @@ import {
   DollarSign,
   Download,
   CheckCircle,
+  BookOpen,
+  Plus,
+  X,
 } from "lucide-react";
+import {
+  getServicesCatalog,
+  type ServiceItem,
+} from "@/app/actions/services-catalog-actions";
+import { AnimatedButton } from "@/components/ui/AnimatedButton";
+import { AnimatePresence, motion } from "framer-motion";
 
 type LineItem = {
   id: string;
@@ -25,7 +34,10 @@ type LineItem = {
   unit_price: number;
 };
 
-function guessRateFromMap(description: string, rates: Record<string, number>): number {
+function guessRateFromMap(
+  description: string,
+  rates: Record<string, number>,
+): number {
   const desc = description.toLowerCase();
   for (const [key, rate] of Object.entries(rates)) {
     if (desc.includes(key.toLowerCase())) return rate;
@@ -41,13 +53,18 @@ export default function QuotePage() {
   const [saving, setSaving] = useState(false);
   const [sent, setSent] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [catalog, setCatalog] = useState<ServiceItem[]>([]);
 
   useEffect(() => {
     loadData();
   }, [id]);
 
   const loadData = async () => {
-    const [data, rates] = await Promise.all([getJobForQuote(id), getSavedRates()]);
+    const [data, rates] = await Promise.all([
+      getJobForQuote(id),
+      getSavedRates(),
+    ]);
     setJob(data.job);
     setItems(
       data.tasks.map((t: any) => ({
@@ -55,18 +72,46 @@ export default function QuotePage() {
         description: t.description,
         quantity: t.quantity || 1,
         unit_price: t.unit_price || guessRateFromMap(t.description, rates),
-      }))
+      })),
     );
     setLoaded(true);
   };
 
-  const updateItem = (idx: number, field: keyof LineItem, value: string | number) => {
+  const updateItem = (
+    idx: number,
+    field: keyof LineItem,
+    value: string | number,
+  ) => {
     setItems((prev) =>
-      prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item))
+      prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)),
     );
   };
 
-  const total = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+  const total = items.reduce(
+    (sum, item) => sum + item.quantity * item.unit_price,
+    0,
+  );
+
+  const openCatalogPicker = async () => {
+    if (catalog.length === 0) {
+      const data = await getServicesCatalog();
+      setCatalog(data);
+    }
+    setShowCatalog(true);
+  };
+
+  const addFromCatalog = (svc: ServiceItem) => {
+    setItems((prev) => [
+      ...prev,
+      {
+        id: `catalog-${Date.now()}-${Math.random()}`,
+        description: svc.task_name,
+        quantity: svc.default_quantity,
+        unit_price: svc.unit_price,
+      },
+    ]);
+    setShowCatalog(false);
+  };
 
   const saveAllPricing = async () => {
     for (const item of items) {
@@ -92,7 +137,7 @@ export default function QuotePage() {
       })),
       total,
     }),
-    [job, items, total]
+    [job, items, total],
   );
 
   const generatePDF = async () => {
@@ -131,21 +176,21 @@ export default function QuotePage() {
 
       if (data.fallback) {
         const subject = encodeURIComponent(
-          `Quote ${job?.job_number} - ${job?.property_address || job?.title || "Job"}`
+          `Quote ${job?.job_number} - ${job?.property_address || job?.title || "Job"}`,
         );
         const bodyText = encodeURIComponent(
-          `Hi Coady,\n\nPlease find the quote for ${job?.job_number} attached.\n\nProperty: ${job?.property_address || job?.address || "N/A"}\nTotal: $${total.toFixed(2)}\n\nThanks,\nFrank`
+          `Hi Coady,\n\nPlease find the quote for ${job?.job_number} attached.\n\nProperty: ${job?.property_address || job?.address || "N/A"}\nTotal: $${total.toFixed(2)}\n\nThanks,\nFrank`,
         );
         window.open(
           `mailto:coady@allprofessionaltrades.com?cc=neilh@allprofessionaltrades.com&subject=${subject}&body=${bodyText}`,
-          "_self"
+          "_self",
         );
       }
     } catch {
       const subject = encodeURIComponent(`Quote ${job?.job_number}`);
       window.open(
         `mailto:coady@allprofessionaltrades.com?cc=neilh@allprofessionaltrades.com&subject=${subject}`,
-        "_self"
+        "_self",
       );
     }
 
@@ -181,11 +226,74 @@ export default function QuotePage() {
         </GlassCard>
       )}
 
+      {/* Catalog Picker Modal */}
+      <AnimatePresence>
+        {showCatalog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md max-h-[70vh] overflow-y-auto"
+            >
+              <GlassCard intensity="panel" className="p-6 relative">
+                <button
+                  onClick={() => setShowCatalog(false)}
+                  className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-primary" /> Pick from
+                  Catalog
+                </h2>
+                {catalog.length === 0 ? (
+                  <p className="text-sm text-white/40 text-center py-4">
+                    No services in catalog yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {catalog.map((svc) => (
+                      <button
+                        key={svc.id}
+                        onClick={() => addFromCatalog(svc)}
+                        className="w-full text-left p-3 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition-colors border border-white/5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-white truncate">
+                              {svc.task_name}
+                            </p>
+                            {svc.description && (
+                              <p className="text-xs text-white/40 truncate">
+                                {svc.description}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-sm font-bold text-emerald-400 ml-3">
+                            ${svc.unit_price.toFixed(2)}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </GlassCard>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <GlassCard className="p-4 space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Line Items
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Line Items
+          </h2>
+          <AnimatedButton variant="ghost" size="sm" onClick={openCatalogPicker}>
+            <BookOpen className="w-4 h-4" /> Catalog
+          </AnimatedButton>
+        </div>
 
         {items.map((item, idx) => (
           <div key={item.id} className="bg-white/5 rounded-xl p-3 space-y-2">
@@ -216,7 +324,11 @@ export default function QuotePage() {
                   step={5}
                   value={item.unit_price}
                   onChange={(e) =>
-                    updateItem(idx, "unit_price", parseFloat(e.target.value) || 0)
+                    updateItem(
+                      idx,
+                      "unit_price",
+                      parseFloat(e.target.value) || 0,
+                    )
                   }
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                 />

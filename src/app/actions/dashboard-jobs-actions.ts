@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { JobStatus, JOB_STATUS_FLOW } from "@/lib/fsm/job-state";
+import { sendStatusTransitionEmail } from "@/lib/services/status-comms";
 
 export type DashboardJob = {
   id: string;
@@ -17,13 +18,27 @@ export type DashboardJob = {
   quoted_total?: number;
 };
 
-const STATUS_ORDER = ["incoming", "draft", "quoted", "sent", "approved", "active", "scheduled", "in_progress", "completed", "invoiced", "paid"];
+const STATUS_ORDER = [
+  "incoming",
+  "draft",
+  "quoted",
+  "sent",
+  "approved",
+  "scheduled",
+  "in_progress",
+  "completed",
+  "invoiced",
+  "paid",
+];
 
-// Dashboard advance follows the primary happy path
+// Dashboard advance follows the 10-stop happy path
 const NEXT_STATUS: Record<string, string> = {
   incoming: "draft",
   draft: "quoted",
-  quoted: "in_progress",
+  quoted: "sent",
+  sent: "approved",
+  approved: "scheduled",
+  scheduled: "in_progress",
   in_progress: "completed",
   completed: "invoiced",
   invoiced: "paid",
@@ -34,7 +49,9 @@ export async function getDashboardJobs(): Promise<DashboardJob[]> {
 
   const { data: jobs, error } = await supabase
     .from("jobs")
-    .select("id, job_number, title, property_address, address, status, urgency, due_date, created_at")
+    .select(
+      "id, job_number, title, property_address, address, status, urgency, due_date, created_at",
+    )
     .in("status", STATUS_ORDER)
     .order("created_at", { ascending: false });
 
@@ -76,12 +93,24 @@ export async function advanceJobStatus(jobId: string) {
   const nextStatus = NEXT_STATUS[job.status];
   if (!nextStatus) return { success: false, error: "No next status" };
 
+  // Build update payload with timestamps for specific transitions
+  const updatePayload: Record<string, any> = { status: nextStatus };
+  if (nextStatus === "invoiced") {
+    updatePayload.invoiced_at = new Date().toISOString();
+  }
+  if (nextStatus === "paid") {
+    updatePayload.paid_at = new Date().toISOString();
+  }
+
   const { error } = await supabase
     .from("jobs")
-    .update({ status: nextStatus } as any)
+    .update(updatePayload as any)
     .eq("id", jobId);
 
   if (error) return { success: false, error: error.message };
+
+  // Auto-send status transition email to client
+  sendStatusTransitionEmail(jobId, nextStatus);
 
   revalidatePath("/dashboard");
   return { success: true, newStatus: nextStatus };

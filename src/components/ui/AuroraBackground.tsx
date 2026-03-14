@@ -3,20 +3,23 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 export const AuroraBackground = ({
-    className,
-    children,
-    showRadialGradient = true,
-    ...props
+  className,
+  children,
+  showRadialGradient = true,
+  ...props
 }: {
-    className?: string;
-    children?: React.ReactNode;
-    showRadialGradient?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+  showRadialGradient?: boolean;
 }) => {
-    return (
-        <div className={cn("fixed inset-0 -z-50 overflow-hidden", className)} {...props}>
-            <div
-                className={cn(
-                    `
+  return (
+    <div
+      className={cn("fixed inset-0 -z-50 overflow-hidden", className)}
+      {...props}
+    >
+      <div
+        className={cn(
+          `
             [--white-gradient:repeating-linear-gradient(100deg,var(--white)_0%,var(--white)_7%,var(--transparent)_10%,var(--transparent)_12%,var(--white)_16%)]
             [--dark-gradient:repeating-linear-gradient(100deg,var(--black)_0%,var(--black)_7%,var(--transparent)_10%,var(--transparent)_12%,var(--black)_16%)]
             [--aurora:repeating-linear-gradient(100deg,var(--blue-500)_10%,var(--indigo-500)_15%,var(--blue-300)_20%,var(--violet-200)_25%,var(--blue-400)_30%)]
@@ -31,11 +34,11 @@ export const AuroraBackground = ({
             pointer-events-none
             absolute -inset-[10px] opacity-50 will-change-transform`,
 
-                    showRadialGradient &&
-                    `[mask-image:radial-gradient(ellipse_at_100%_0%,black_10%,var(--transparent)_70%)]`
-                )}
-            ></div>
-            {children}
-        </div>
-    );
+          showRadialGradient &&
+            `[mask-image:radial-gradient(ellipse_at_100%_0%,black_10%,var(--transparent)_70%)]`,
+        )}
+      ></div>
+      {children}
+    </div>
+  );
 };

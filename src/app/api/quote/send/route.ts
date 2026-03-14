@@ -14,7 +14,7 @@ function generatePdfBuffer(
   jobNumber: string,
   propertyAddress: string,
   items: LineItem[],
-  total: number
+  total: number,
 ): Buffer {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -81,16 +81,23 @@ function generatePdfBuffer(
   y += 5;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text(`Total: $${total.toFixed(2)}`, pageWidth - 16, y, { align: "right" });
+  doc.text(`Total: $${total.toFixed(2)}`, pageWidth - 16, y, {
+    align: "right",
+  });
 
   y += 20;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(150);
   doc.text("aguirref04@gmail.com", pageWidth / 2, y, { align: "center" });
-  doc.text("Thank you for choosing Frank's Home Improvement", pageWidth / 2, y + 6, {
-    align: "center",
-  });
+  doc.text(
+    "Thank you for choosing Frank's Home Improvement",
+    pageWidth / 2,
+    y + 6,
+    {
+      align: "center",
+    },
+  );
 
   return Buffer.from(doc.output("arraybuffer"));
 }
@@ -104,7 +111,12 @@ export async function POST(req: NextRequest) {
       total: number;
     };
 
-    const pdfBuffer = generatePdfBuffer(jobNumber, propertyAddress, items, total);
+    const pdfBuffer = generatePdfBuffer(
+      jobNumber,
+      propertyAddress,
+      items,
+      total,
+    );
 
     // If Resend is not configured, fall back gracefully
     if (!process.env.RESEND_API_KEY) {
@@ -130,7 +142,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true, emailId: data?.id });

@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
 
   if (!code) {
     return NextResponse.redirect(
-      new URL("/ops/schedule?error=no_code", req.url)
+      new URL("/ops/schedule?error=no_code", req.url),
     );
   }
 
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     if (!user) {
       return NextResponse.redirect(
-        new URL("/login?error=unauthorized", req.url)
+        new URL("/login?error=unauthorized", req.url),
       );
     }
 
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     if (!profile?.organization_id) {
       return NextResponse.redirect(
-        new URL("/ops/schedule?error=no_org", req.url)
+        new URL("/ops/schedule?error=no_org", req.url),
       );
     }
 
@@ -44,20 +44,22 @@ export async function GET(req: NextRequest) {
         user_id: user.id,
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
-        token_expiry: new Date(tokens.expiry_date || Date.now() + 3600000).toISOString(),
+        token_expiry: new Date(
+          tokens.expiry_date || Date.now() + 3600000,
+        ).toISOString(),
         calendar_id: "primary",
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "organization_id,user_id" }
+      { onConflict: "organization_id,user_id" },
     );
 
     return NextResponse.redirect(
-      new URL("/ops/schedule?gcal=connected", req.url)
+      new URL("/ops/schedule?gcal=connected", req.url),
     );
   } catch (error: any) {
     console.error("GCal OAuth error:", error);
     return NextResponse.redirect(
-      new URL("/ops/schedule?error=oauth_failed", req.url)
+      new URL("/ops/schedule?error=oauth_failed", req.url),
     );
   }
 }

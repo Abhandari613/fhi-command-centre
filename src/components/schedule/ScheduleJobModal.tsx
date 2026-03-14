@@ -64,7 +64,7 @@ export function ScheduleJobModal({
     setSelectedSubs((prev) =>
       prev.includes(subId)
         ? prev.filter((id) => id !== subId)
-        : [...prev, subId]
+        : [...prev, subId],
     );
   };
 
@@ -151,9 +151,7 @@ export function ScheduleJobModal({
           </div>
         </div>
 
-        {error && (
-          <p className="text-red-400 text-sm font-medium">{error}</p>
-        )}
+        {error && <p className="text-red-400 text-sm font-medium">{error}</p>}
 
         <div className="flex gap-3">
           <button

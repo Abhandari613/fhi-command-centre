@@ -3,7 +3,14 @@
 import { useState, useRef } from "react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { createJobFromEmail } from "@/app/actions/ingest-actions";
-import { Mail, Paperclip, Send, CheckCircle, AlertTriangle, X } from "lucide-react";
+import {
+  Mail,
+  Paperclip,
+  Send,
+  CheckCircle,
+  AlertTriangle,
+  X,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
@@ -23,7 +30,7 @@ export default function IngestPage() {
   const isRush = () => {
     const text = `${subject} ${body}`.toLowerCase();
     return ["rush", "asap", "urgent", "emergency", "immediately"].some((kw) =>
-      text.includes(kw)
+      text.includes(kw),
     );
   };
 
@@ -61,7 +68,9 @@ export default function IngestPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-extrabold tracking-tight">New Job</h1>
-        <p className="text-sm opacity-70">Paste an email or add photos to start a job</p>
+        <p className="text-sm opacity-70">
+          Paste an email or add photos to start a job
+        </p>
       </header>
 
       <AnimatePresence>

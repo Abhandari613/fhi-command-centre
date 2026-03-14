@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your Job Pipeline — Frank's Home Improvement</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0f0f0f;
+        --card: #1a1a1a;
+        --card-hover: #222;
+        --card-border: #2a2a2a;
+        --ember: #e85d26;
+        --ember-glow: rgba(232, 93, 38, 0.4);
+        --green: #22c55e;
+        --blue: #3b82f6;
+        --yellow: #eab308;
+        --purple: #a855f7;
+        --purple-glow: rgba(168, 85, 247, 0.3);
+        --white: #f5f5f5;
+        --gray: #a0a0a0;
+        --dim: #555;
+      }
+
+      html {
+        background: var(--bg);
+        color: var(--white);
+        font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      /* ---- HEADER ---- */
+      .header {
+        text-align: center;
+        padding: 48px 24px 12px;
+      }
+
+      .header h1 {
+        font-size: clamp(2rem, 5vw, 3.2rem);
+        font-weight: 800;
+        letter-spacing: -1px;
+        background: linear-gradient(135deg, var(--ember), #ff9a5c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .header .subtitle {
+        color: var(--gray);
+        font-size: 1.1rem;
+        margin-top: 8px;
+      }
+
+      /* ---- SCOREBOARD ---- */
+      .scoreboard {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        padding: 28px 24px 12px;
+      }
+
+      .score-item {
+        text-align: center;
+      }
+
+      .score-number {
+        font-size: 2.8rem;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .score-number.ember {
+        color: var(--ember);
+      }
+      .score-number.purple {
+        color: var(--purple);
+      }
+
+      .score-label {
+        font-size: 0.8rem;
+        color: var(--dim);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+
+      .score-divider {
+        width: 1px;
+        background: var(--dim);
+        opacity: 0.3;
+        align-self: stretch;
+      }
+
+      /* ---- LEGEND ---- */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        padding: 20px 24px 36px;
+      }
+
+      .legend-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .legend-pill.you-pill {
+        background: rgba(232, 93, 38, 0.12);
+        border-color: rgba(232, 93, 38, 0.3);
+      }
+
+      .legend-pill.auto-pill {
+        background: rgba(168, 85, 247, 0.12);
+        border-color: rgba(168, 85, 247, 0.3);
+      }
+
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+
+      /* ---- TIMELINE ---- */
+      .timeline {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 24px 40px;
+        position: relative;
+      }
+
+      /* Center line */
+      .timeline::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 60px;
+        width: 2px;
+        background: linear-gradient(
+          180deg,
+          var(--ember),
+          var(--purple),
+          var(--green)
+        );
+        opacity: 0.25;
+        transform: translateX(-50%);
+      }
+
+      /* ---- STEP ---- */
+      .step {
+        display: grid;
+        grid-template-columns: 1fr 60px 1fr;
+        align-items: start;
+        margin-bottom: 8px;
+        position: relative;
+        min-height: 100px;
+      }
+
+      .step-left {
+        text-align: right;
+        padding-right: 20px;
+        padding-top: 14px;
+      }
+
+      .step-right {
+        text-align: left;
+        padding-left: 20px;
+        padding-top: 14px;
+      }
+
+      /* Center node */
+      .step-node {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        z-index: 2;
+      }
+
+      .node-badge {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .node-badge:hover {
+        transform: scale(1.12);
+      }
+
+      .node-badge.you {
+        background: linear-gradient(135deg, #2a1a10, #1f1410);
+        border: 2px solid var(--ember);
+        box-shadow: 0 0 20px var(--ember-glow);
+      }
+
+      .node-badge.auto {
+        background: linear-gradient(135deg, #1a1028, #14101f);
+        border: 2px solid var(--purple);
+        box-shadow: 0 0 20px var(--purple-glow);
+      }
+
+      .node-badge.waiting {
+        background: linear-gradient(135deg, #0f1f14, #101f10);
+        border: 2px solid var(--green);
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+      }
+
+      .node-num {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        font-size: 0.7rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+      }
+
+      .node-num.you {
+        background: var(--ember);
+      }
+      .node-num.auto {
+        background: var(--purple);
+      }
+      .node-num.waiting {
+        background: var(--green);
+      }
+
+      .node-connector {
+        width: 2px;
+        height: 24px;
+        opacity: 0.15;
+      }
+
+      /* ---- CARD ---- */
+      .step-card {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 14px;
+        padding: 16px 18px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        max-width: 360px;
+      }
+
+      .step-card:hover {
+        border-color: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+      }
+
+      .step-left .step-card {
+        margin-left: auto;
+      }
+
+      .step-card.you-card:hover {
+        border-color: var(--ember);
+        box-shadow: 0 4px 24px rgba(232, 93, 38, 0.15);
+      }
+
+      .step-card.auto-card:hover {
+        border-color: var(--purple);
+        box-shadow: 0 4px 24px rgba(168, 85, 247, 0.15);
+      }
+
+      .step-card.wait-card:hover {
+        border-color: var(--green);
+        box-shadow: 0 4px 24px rgba(34, 197, 94, 0.15);
+      }
+
+      /* Active state */
+      .step-card.active.you-card {
+        border-color: var(--ember);
+        background: #1f1710;
+        box-shadow: 0 0 40px var(--ember-glow);
+      }
+
+      .step-card.active.auto-card {
+        border-color: var(--purple);
+        background: #1a1028;
+        box-shadow: 0 0 40px var(--purple-glow);
+      }
+
+      .step-card.active.wait-card {
+        border-color: var(--green);
+        background: #0f1f14;
+        box-shadow: 0 0 40px rgba(34, 197, 94, 0.2);
+      }
+
+      .card-mode {
+        display: inline-block;
+        font-size: 0.6rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+      }
+
+      .card-mode.you-mode {
+        background: rgba(232, 93, 38, 0.15);
+        color: var(--ember);
+      }
+
+      .card-mode.auto-mode {
+        background: rgba(168, 85, 247, 0.15);
+        color: var(--purple);
+      }
+
+      .card-mode.wait-mode {
+        background: rgba(34, 197, 94, 0.15);
+        color: var(--green);
+      }
+
+      .card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: var(--white);
+      }
+
+      .card-oneliner {
+        font-size: 0.8rem;
+        color: var(--gray);
+        line-height: 1.5;
+        margin-bottom: 10px;
+      }
+
+      .card-frank {
+        font-size: 0.75rem;
+        line-height: 1.5;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .card-frank strong {
+        color: var(--ember);
+      }
+
+      .card-frank.auto-frank strong {
+        color: var(--purple);
+      }
+
+      .card-actors {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 10px;
+      }
+
+      .actor-pill {
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #000;
+      }
+
+      /* ---- DETAIL PANEL ---- */
+      .detail-overlay {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      .detail-panel {
+        background: linear-gradient(135deg, #1e1e1e, #161616);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-bottom: 32px;
+        opacity: 0;
+      }
+
+      .detail-panel.open {
+        max-height: 500px;
+        padding: 28px 32px;
+        opacity: 1;
+        box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+      }
+
+      .detail-panel.open.ember-border {
+        border-color: var(--ember);
+      }
+      .detail-panel.open.purple-border {
+        border-color: var(--purple);
+      }
+      .detail-panel.open.green-border {
+        border-color: var(--green);
+      }
+
+      .detail-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+
+      .detail-top-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .detail-icon {
+        font-size: 2.2rem;
+        line-height: 1;
+      }
+
+      .detail-heading {
+        font-size: 1.3rem;
+        font-weight: 800;
+      }
+
+      .detail-stop-num {
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .detail-stop-num.ember-text {
+        color: var(--ember);
+      }
+      .detail-stop-num.purple-text {
+        color: var(--purple);
+      }
+      .detail-stop-num.green-text {
+        color: var(--green);
+      }
+
+      .detail-close {
+        background: none;
+        border: 1px solid var(--dim);
+        color: var(--gray);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+
+      .detail-close:hover {
+        color: var(--white);
+        border-color: var(--white);
+      }
+
+      .detail-text {
+        font-size: 0.92rem;
+        line-height: 1.7;
+        color: var(--gray);
+        max-width: 700px;
+      }
+
+      .detail-who {
+        margin-top: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .detail-who-label {
+        font-size: 0.7rem;
+        color: var(--dim);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+      }
+
+      .detail-who .actor-pill {
+        font-size: 0.7rem;
+        padding: 3px 10px;
+      }
+
+      /* ---- SAFETY NET ---- */
+      .safety-section {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 24px 60px;
+      }
+
+      .safety-header {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+
+      .safety-header h2 {
+        font-size: 1.4rem;
+        font-weight: 700;
+      }
+      .safety-header p {
+        color: var(--dim);
+        font-size: 0.85rem;
+        margin-top: 6px;
+      }
+
+      .safety-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+      }
+
+      .safety-card {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 16px 18px;
+        transition: all 0.2s;
+      }
+
+      .safety-card:hover {
+        border-color: var(--dim);
+      }
+      .safety-card .safety-icon {
+        font-size: 1.2rem;
+        margin-bottom: 4px;
+      }
+      .safety-card .safety-text {
+        font-size: 0.82rem;
+        color: var(--gray);
+        line-height: 1.5;
+      }
+      .safety-card .safety-text strong {
+        color: var(--white);
+        font-weight: 600;
+      }
+
+      /* ---- ANIMATIONS ---- */
+      .step {
+        opacity: 0;
+        transform: translateY(16px);
+        animation: stepIn 0.5s ease forwards;
+      }
+
+      @keyframes stepIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulseEmber {
+        0%,
+        100% {
+          box-shadow: 0 0 12px var(--ember-glow);
+        }
+        50% {
+          box-shadow:
+            0 0 24px var(--ember-glow),
+            0 0 48px rgba(232, 93, 38, 0.1);
+        }
+      }
+
+      @keyframes pulsePurple {
+        0%,
+        100% {
+          box-shadow: 0 0 12px var(--purple-glow);
+        }
+        50% {
+          box-shadow:
+            0 0 24px var(--purple-glow),
+            0 0 48px rgba(168, 85, 247, 0.1);
+        }
+      }
+
+      .node-badge.you {
+        animation: pulseEmber 3s ease-in-out infinite;
+      }
+      .node-badge.auto {
+        animation: pulsePurple 3s ease-in-out infinite;
+      }
+
+      /* ---- RESPONSIVE ---- */
+      @media (max-width: 700px) {
+        .timeline::before {
+          left: 30px;
+        }
+
+        .step {
+          grid-template-columns: 60px 1fr;
+        }
+
+        .step-left {
+          display: none;
+        }
+
+        .step-right {
+          padding-left: 16px;
+        }
+
+        .step-card {
+          max-width: 100%;
+        }
+
+        .scoreboard {
+          gap: 20px;
+        }
+        .score-number {
+          font-size: 2rem;
+        }
+      }
+
+      @media (max-width: 500px) {
+        .header {
+          padding: 36px 16px 8px;
+        }
+        .header h1 {
+          font-size: 1.8rem;
+        }
+        .safety-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Your Job Pipeline</h1>
+      <p class="subtitle">
+        Every job follows these 10 stops. Most of them run themselves.
+      </p>
+    </div>
+
+    <!-- SCOREBOARD -->
+    <div class="scoreboard">
+      <div class="score-item">
+        <div class="score-number ember">3</div>
+        <div class="score-label">Your Moves</div>
+      </div>
+      <div class="score-divider"></div>
+      <div class="score-item">
+        <div class="score-number purple">7</div>
+        <div class="score-label">On Autopilot</div>
+      </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend">
+      <div class="legend-pill you-pill">
+        <div class="legend-dot" style="background: var(--ember)"></div>
+        Your Move
+      </div>
+      <div class="legend-pill auto-pill">
+        <div class="legend-dot" style="background: var(--purple)"></div>
+        Autopilot
+      </div>
+      <div class="legend-pill">
+        <div class="legend-dot" style="background: var(--green)"></div>
+        Waiting on Client
+      </div>
+      <div class="legend-pill">
+        <div class="legend-dot" style="background: var(--blue)"></div>
+        Neil
+      </div>
+      <div class="legend-pill">
+        <div class="legend-dot" style="background: var(--yellow)"></div>
+        Subs
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="timeline" id="timeline"></div>
+
+    <!-- DETAIL PANEL -->
+    <div class="detail-overlay">
+      <div class="detail-panel" id="detailPanel">
+        <div class="detail-top">
+          <div class="detail-top-left">
+            <span class="detail-icon" id="detailIcon"></span>
+            <div>
+              <div class="detail-stop-num" id="detailNum"></div>
+              <div class="detail-heading" id="detailHeading"></div>
+            </div>
+          </div>
+          <button class="detail-close" id="detailClose">&times;</button>
+        </div>
+        <div class="detail-text" id="detailText"></div>
+        <div class="detail-who" id="detailWho"></div>
+      </div>
+    </div>
+
+    <!-- SAFETY NET -->
+    <div class="safety-section">
+      <div class="safety-header">
+        <h2>Safety Net</h2>
+        <p>Things change. Here's how to handle it.</p>
+      </div>
+      <div class="safety-grid">
+        <div class="safety-card">
+          <div class="safety-icon">&#8617;&#65039;</div>
+          <div class="safety-text">
+            <strong>Need to reschedule?</strong> Move it back — AI suggests the
+            next best date.
+          </div>
+        </div>
+        <div class="safety-card">
+          <div class="safety-icon">&#8617;&#65039;</div>
+          <div class="safety-text">
+            <strong>Found more work?</strong> AI detects scope creep from photos
+            automatically.
+          </div>
+        </div>
+        <div class="safety-card">
+          <div class="safety-icon">&#8617;&#65039;</div>
+          <div class="safety-text">
+            <strong>Invoice wrong?</strong> Margin check catches issues before
+            send.
+          </div>
+        </div>
+        <div class="safety-card">
+          <div class="safety-icon">&#8617;&#65039;</div>
+          <div class="safety-text">
+            <strong>Client ghosting?</strong> Auto-follow-up at 3 days, alert at
+            7.
+          </div>
+        </div>
+        <div class="safety-card">
+          <div class="safety-icon">&#9193;&#65039;</div>
+          <div class="safety-text">
+            <strong>Trusted client?</strong> Skip straight to work. AI handles
+            paperwork.
+          </div>
+        </div>
+        <div class="safety-card">
+          <div class="safety-icon">&#128276;</div>
+          <div class="safety-text">
+            <strong>Never miss an email.</strong> Gmail surveillance runs 24/7.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const STOPS = [
+        {
+          num: 1,
+          icon: "\u{1F4E1}",
+          title: "Auto-Detected",
+          mode: "auto", // auto | you | wait
+          modeLabel: "Autopilot",
+          side: "right",
+          oneliner: "AI scans your Gmail and creates jobs automatically.",
+          frank:
+            '<strong>You do nothing.</strong> A notification pops up: "New work from Jane Smith at 42 Oak Lane."',
+          detail:
+            "The system monitors your Gmail around the clock. When someone emails about work \u2014 Neil, a property manager, a homeowner \u2014 the AI reads it, classifies it (new work, quote request, or update), extracts the address and tasks, and creates the job automatically. You get a notification. Zero typing, zero pasting.",
+          actors: [{ name: "AI", color: "var(--purple)" }],
+        },
+        {
+          num: 2,
+          icon: "\u{1F50D}",
+          title: "What Needs Doing",
+          mode: "you",
+          modeLabel: "Your Move",
+          side: "left",
+          oneliner: "AI pre-builds the task list from the email. You confirm.",
+          frank:
+            "<strong>Your job:</strong> Review the task list. Tap to confirm, swipe to toss, add anything missing. ~2 min.",
+          detail:
+            'The AI already extracted tasks from the email ("paint bedroom walls, patch drywall in hallway"). Upload site photos and the AI refines the list \u2014 adds things it sees, flags a site visit if the email was vague. Past jobs at the same address surface automatically. Only confirmed items move forward.',
+          actors: [
+            { name: "You", color: "var(--ember)" },
+            { name: "AI", color: "var(--purple)" },
+          ],
+        },
+        {
+          num: 3,
+          icon: "\u{1F4B0}",
+          title: "Price It Up",
+          mode: "you",
+          modeLabel: "Your Move",
+          side: "right",
+          oneliner: "AI auto-fills prices from your history. Review and send.",
+          frank:
+            "<strong>Your job:</strong> Glance at the prices AI filled in. Adjust if needed. Hit send. ~1 min.",
+          detail:
+            'The Quote Builder shows your confirmed tasks with prices already filled in \u2014 the AI looked at what you charged last time for "paint bedroom walls" and auto-filled $350. Hit send, system generates the PDF and emails it through your Gmail so the reply thread stays intact. Neil gets CC\u2019d automatically.',
+          actors: [
+            { name: "You", color: "var(--ember)" },
+            { name: "AI", color: "var(--purple)" },
+            { name: "Neil", color: "var(--blue)" },
+          ],
+        },
+        {
+          num: 4,
+          icon: "\u2705",
+          title: "Client Says Yes",
+          mode: "wait",
+          modeLabel: "Waiting on Client",
+          side: "left",
+          oneliner:
+            "Client approves in their portal. AI follows up if they ghost.",
+          frank:
+            "<strong>You do nothing.</strong> System auto-follows up at 3 days. You get alerted at 7 days if still no response.",
+          detail:
+            "Client gets a magic link to their portal with the quote and a big approve button. Confetti when they say yes! If no response in 3 days, system auto-sends a friendly follow-up. After 7 days, you get a notification to decide: follow up personally or close it out.",
+          actors: [
+            { name: "Client", color: "var(--green)" },
+            { name: "AI", color: "var(--purple)" },
+          ],
+        },
+        {
+          num: 5,
+          icon: "\u{1F4C5}",
+          title: "Lock In the Date",
+          mode: "you",
+          modeLabel: "Your Move",
+          side: "right",
+          oneliner: "AI suggests dates by proximity. You tap to confirm.",
+          frank:
+            '<strong>Your job:</strong> Pick from AI suggestions like "Thursday \u2014 you\'re 2 blocks away." One tap. ~30 sec.',
+          detail:
+            'Instead of staring at a calendar, the AI suggests the best dates. It considers your Google Calendar, job locations, urgency, and workload balance. Pick a suggestion or choose your own. Syncs to GCal automatically. Client gets an email: "Work starts Thursday."',
+          actors: [
+            { name: "You", color: "var(--ember)" },
+            { name: "AI", color: "var(--purple)" },
+          ],
+        },
+        {
+          num: 6,
+          icon: "\u{1F69B}",
+          title: "Crew Dispatched",
+          mode: "auto",
+          modeLabel: "Autopilot",
+          side: "left",
+          oneliner:
+            "Best sub auto-assigned and notified when you lock the date.",
+          frank:
+            '<strong>You do nothing.</strong> Notification: "Auto-dispatched Cole to JOB-047." Override if you want.',
+          detail:
+            "When you lock a date, the system matches the job\u2019s tasks to your subs\u2019 specialties and availability. Best match gets auto-dispatched with a magic link. If no clear match, you pick manually.",
+          actors: [
+            { name: "AI", color: "var(--purple)" },
+            { name: "Subs", color: "var(--yellow)" },
+          ],
+        },
+        {
+          num: 7,
+          icon: "\u{1F528}",
+          title: "Boots on the Ground",
+          mode: "auto",
+          modeLabel: "Autopilot",
+          side: "right",
+          oneliner:
+            "Crew works, client sees live progress, AI watches for issues.",
+          frank:
+            "<strong>You get notified</strong> when photos come in. Only step in if AI flags scope creep.",
+          detail:
+            'Crew works and uploads photos. The AI watches for hidden damage or extra work. The client can see live progress in their portal: "Your kitchen is 60% done." Builds trust, kills "when will it be done?" calls. You only review AI flags \u2014 decide to add scope or ignore.',
+          actors: [
+            { name: "Subs", color: "var(--yellow)" },
+            { name: "AI", color: "var(--purple)" },
+            { name: "Client", color: "var(--green)" },
+          ],
+        },
+        {
+          num: 8,
+          icon: "\u{1F4F8}",
+          title: "AI Verifies Completion",
+          mode: "auto",
+          modeLabel: "Autopilot",
+          side: "left",
+          oneliner: "AI matches photos to tasks. Auto-approves if confident.",
+          frank:
+            "<strong>You do nothing.</strong> AI handles matching. Neil gets an FYI, not a blocker.",
+          detail:
+            "The AI looks at each completion photo and matches it to the task it proves \u2014 no more manual drag-and-drop. If confidence is high, it auto-approves and notifies Neil as an FYI. If something\u2019s unclear, it flags it for your review. Neil only gets pulled in for exceptions.",
+          actors: [
+            { name: "AI", color: "var(--purple)" },
+            { name: "Neil", color: "var(--blue)" },
+          ],
+        },
+        {
+          num: 9,
+          icon: "\u{1F4CA}",
+          title: "Auto-Invoice",
+          mode: "auto",
+          modeLabel: "Autopilot",
+          side: "right",
+          oneliner: "Invoice auto-generated. Margin warning if it\u2019s low.",
+          frank:
+            "<strong>You only step in</strong> if margin is red (<10%). Otherwise it ships automatically.",
+          detail:
+            'The moment completion is approved, the system auto-generates an invoice from the quote line items. It checks your margin first: Green (>20%) = ships automatically. Yellow (10\u201320%) = heads up. Red (<10%) = "Hold on Frank, this job is at 8% margin \u2014 did you miss a cost?"',
+          actors: [{ name: "AI", color: "var(--purple)" }],
+        },
+        {
+          num: 10,
+          icon: "\u{1F3C1}",
+          title: "Done + Follow-Up",
+          mode: "auto",
+          modeLabel: "Autopilot",
+          side: "left",
+          oneliner: "Review request sent. Recurring work detected.",
+          frank:
+            '<strong>You do nothing.</strong> System sends "How\'d we do?" and flags repeat addresses.',
+          detail:
+            'Client pays, job done. System auto-sends a review request. If this address has had prior work, you get a notification: "3rd job at 42 Oak Lane \u2014 consider annual maintenance." Loyal clients (3+ jobs) get flagged for a thank-you.',
+          actors: [
+            { name: "AI", color: "var(--purple)" },
+            { name: "Client", color: "var(--green)" },
+          ],
+        },
+      ];
+
+      const timeline = document.getElementById("timeline");
+      const panel = document.getElementById("detailPanel");
+      let activeIdx = null;
+
+      const modeClasses = {
+        you: {
+          badge: "you",
+          card: "you-card",
+          mode: "you-mode",
+          num: "you",
+          frank: "",
+          border: "ember-border",
+          text: "ember-text",
+        },
+        auto: {
+          badge: "auto",
+          card: "auto-card",
+          mode: "auto-mode",
+          num: "auto",
+          frank: "auto-frank",
+          border: "purple-border",
+          text: "purple-text",
+        },
+        wait: {
+          badge: "waiting",
+          card: "wait-card",
+          mode: "wait-mode",
+          num: "waiting",
+          frank: "auto-frank",
+          border: "green-border",
+          text: "green-text",
+        },
+      };
+
+      STOPS.forEach((stop, i) => {
+        const cls = modeClasses[stop.mode];
+        const step = document.createElement("div");
+        step.className = "step";
+        step.style.animationDelay = `${i * 0.08}s`;
+
+        const actorPills = stop.actors
+          .map(
+            (a) =>
+              `<span class="actor-pill" style="background:${a.color}">${a.name}</span>`,
+          )
+          .join("");
+
+        const cardHtml = `
+        <div class="step-card ${cls.card}" data-index="${i}">
+          <div class="card-mode ${cls.mode}">${stop.modeLabel}</div>
+          <div class="card-title">${stop.title}</div>
+          <div class="card-oneliner">${stop.oneliner}</div>
+          <div class="card-frank ${cls.frank}">${stop.frank}</div>
+          <div class="card-actors">${actorPills}</div>
+        </div>
+      `;
+
+        const nodeHtml = `
+        <div class="step-node">
+          <div class="node-badge ${cls.badge}" data-index="${i}">
+            ${stop.icon}
+            <span class="node-num ${cls.num}">${stop.num}</span>
+          </div>
+        </div>
+      `;
+
+        if (stop.side === "left") {
+          step.innerHTML = `
+          <div class="step-left">${cardHtml}</div>
+          ${nodeHtml}
+          <div class="step-right"></div>
+        `;
+        } else {
+          step.innerHTML = `
+          <div class="step-left"></div>
+          ${nodeHtml}
+          <div class="step-right">${cardHtml}</div>
+        `;
+        }
+
+        timeline.appendChild(step);
+      });
+
+      // Click handlers
+      document.querySelectorAll(".step-card, .node-badge").forEach((el) => {
+        el.addEventListener("click", () => {
+          const idx = parseInt(el.dataset.index);
+          if (!isNaN(idx)) openDetail(idx);
+        });
+      });
+
+      function openDetail(index) {
+        const stop = STOPS[index];
+        const cls = modeClasses[stop.mode];
+
+        document
+          .querySelectorAll(".step-card.active")
+          .forEach((c) => c.classList.remove("active"));
+        const cards = document.querySelectorAll(".step-card");
+        if (cards[index]) cards[index].classList.add("active");
+        activeIdx = index;
+
+        document.getElementById("detailIcon").textContent = stop.icon;
+
+        const numEl = document.getElementById("detailNum");
+        numEl.textContent = `Stop ${stop.num} of 10 \u2014 ${stop.modeLabel}`;
+        numEl.className = `detail-stop-num ${cls.text}`;
+
+        document.getElementById("detailHeading").textContent = stop.title;
+        document.getElementById("detailText").textContent = stop.detail;
+
+        const whoDiv = document.getElementById("detailWho");
+        whoDiv.innerHTML =
+          `<span class="detail-who-label">Who:</span>` +
+          stop.actors
+            .map(
+              (a) =>
+                `<span class="actor-pill" style="background:${a.color}">${a.name}</span>`,
+            )
+            .join("");
+
+        panel.className = `detail-panel open ${cls.border}`;
+        panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      function closeDetail() {
+        panel.className = "detail-panel";
+        document
+          .querySelectorAll(".step-card.active")
+          .forEach((c) => c.classList.remove("active"));
+        activeIdx = null;
+      }
+
+      document
+        .getElementById("detailClose")
+        .addEventListener("click", closeDetail);
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeDetail();
+      });
+    </script>
+  </body>
+</html>

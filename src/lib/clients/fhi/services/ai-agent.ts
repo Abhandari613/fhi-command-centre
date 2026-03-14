@@ -3,56 +3,58 @@ import fs from "fs";
 
 // Define the interface for Quote Data based on what we saw in the route
 export interface QuoteData {
-    jobTitle: string;
-    jobDescription: string;
-    lineItems: {
-        description: string;
-        quantity: number;
-        unit_price: number;
-    }[];
+  jobTitle: string;
+  jobDescription: string;
+  lineItems: {
+    description: string;
+    quantity: number;
+    unit_price: number;
+  }[];
 }
 
 export interface WorkOrderDraftData {
-    client_name: string | null;
-    property_address_or_unit: string | null;
-    trade_type: string | null;
-    description: string;
-    needs_clarification: boolean;
-    missing_details: string[];
+  client_name: string | null;
+  property_address_or_unit: string | null;
+  trade_type: string | null;
+  description: string;
+  needs_clarification: boolean;
+  missing_details: string[];
 }
 
 export class AIAgent {
-    private ai: GoogleGenAI;
+  private ai: GoogleGenAI;
 
-    constructor() {
-        if (!process.env.GEMINI_API_KEY) {
-            throw new Error("Gemini API Key missing (GEMINI_API_KEY)");
-        }
-        this.ai = new GoogleGenAI({
-            apiKey: process.env.GEMINI_API_KEY,
-        });
+  constructor() {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("Gemini API Key missing (GEMINI_API_KEY)");
     }
+    this.ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+  }
 
-    async transcribeAudio(audioBuffer: Buffer): Promise<string> {
-        // Prompt Gemini to transcribe using inline data
-        const response = await this.ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [
-                {
-                    inlineData: {
-                        mimeType: "audio/webm",
-                        data: audioBuffer.toString("base64")
-                    }
-                },
-                { text: "Transcribe this audio file accurately. Do not add any commentary. Output only the exact words spoken." },
-            ],
-        });
+  async transcribeAudio(audioBuffer: Buffer): Promise<string> {
+    // Prompt Gemini to transcribe using inline data
+    const response = await this.ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          inlineData: {
+            mimeType: "audio/webm",
+            data: audioBuffer.toString("base64"),
+          },
+        },
+        {
+          text: "Transcribe this audio file accurately. Do not add any commentary. Output only the exact words spoken.",
+        },
+      ],
+    });
 
-        return response.text || "";
-    }
+    return response.text || "";
+  }
 
-    async extractQuoteDetails(transcript: string): Promise<QuoteData> {
-        const prompt = `You are an expert construction estimator. Extract quote details from the transcript.
+  async extractQuoteDetails(transcript: string): Promise<QuoteData> {
+    const prompt = `You are an expert construction estimator. Extract quote details from the transcript.
 Output JSON only with this structure:
 {
   "jobTitle": "string (short summary)",
@@ -70,19 +72,19 @@ If quantity or price is missing, estimate reasonable defaults or use 1 and 0.
 Transcript:
 ${transcript}`;
 
-        const response = await this.ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-            },
-        });
+    const response = await this.ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
 
-        return JSON.parse(response.text || "{}") as QuoteData;
-    }
+    return JSON.parse(response.text || "{}") as QuoteData;
+  }
 
-    async parseWorkOrderDraft(transcript: string): Promise<WorkOrderDraftData> {
-        const prompt = `You are an expert dispatcher for a construction company. Extract work order details from the provided message.
+  async parseWorkOrderDraft(transcript: string): Promise<WorkOrderDraftData> {
+    const prompt = `You are an expert dispatcher for a construction company. Extract work order details from the provided message.
 Output JSON only with this exact structure:
 {
   "client_name": "string | null (if mentioned)",
@@ -97,14 +99,14 @@ If client_name, property_address_or_unit, or trade_type are missing or you are n
 Message:
 ${transcript}`;
 
-        const response = await this.ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-            },
-        });
+    const response = await this.ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
 
-        return JSON.parse(response.text || "{}") as WorkOrderDraftData;
-    }
+    return JSON.parse(response.text || "{}") as WorkOrderDraftData;
+  }
 }

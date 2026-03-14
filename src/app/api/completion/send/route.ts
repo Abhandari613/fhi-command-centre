@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     if (!jobId || !reportId || !recipientEmails?.length) {
       return NextResponse.json(
         { error: "jobId, reportId, and recipientEmails required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,7 +39,10 @@ export async function POST(req: Request) {
     const { data: links } = await supabase
       .from("task_photo_links")
       .select("task_id, photo_id, job_photos(url)")
-      .in("task_id", (tasks || []).map((t: any) => t.id));
+      .in(
+        "task_id",
+        (tasks || []).map((t: any) => t.id),
+      );
 
     // Build task-photo map
     const taskPhotoMap = new Map<string, string[]>();
@@ -62,7 +65,7 @@ export async function POST(req: Request) {
         const photoHtml = photos
           .map(
             (url) =>
-              `<img src="${url}" alt="completion" style="width:120px;height:90px;object-fit:cover;border-radius:6px;margin:4px 4px 0 0;" />`
+              `<img src="${url}" alt="completion" style="width:120px;height:90px;object-fit:cover;border-radius:6px;margin:4px 4px 0 0;" />`,
           )
           .join("");
 
@@ -174,7 +177,10 @@ export async function POST(req: Request) {
     const resendApiKey = process.env.RESEND_API_KEY;
 
     if (!resendApiKey) {
-      console.log("[TEST MODE] Would send completion report to:", recipientEmails);
+      console.log(
+        "[TEST MODE] Would send completion report to:",
+        recipientEmails,
+      );
       return NextResponse.json({ success: true, testMode: true });
     }
 
@@ -195,10 +201,7 @@ export async function POST(req: Request) {
 
     if (emailError) {
       console.error("Resend error:", emailError);
-      return NextResponse.json(
-        { error: "Email send failed" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Email send failed" }, { status: 500 });
     }
 
     return NextResponse.json({

@@ -74,7 +74,9 @@ export async function POST(req: NextRequest) {
       doc.text(item.description, 16, y);
       doc.text(String(item.quantity), 120, y, { align: "center" });
       doc.text(`$${item.unit_price.toFixed(2)}`, 150, y, { align: "right" });
-      doc.text(`$${lineTotal.toFixed(2)}`, pageWidth - 16, y, { align: "right" });
+      doc.text(`$${lineTotal.toFixed(2)}`, pageWidth - 16, y, {
+        align: "right",
+      });
 
       // Row divider
       doc.setDrawColor(230);
@@ -92,7 +94,9 @@ export async function POST(req: NextRequest) {
     y += 5;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text(`Total: $${total.toFixed(2)}`, pageWidth - 16, y, { align: "right" });
+    doc.text(`Total: $${total.toFixed(2)}`, pageWidth - 16, y, {
+      align: "right",
+    });
 
     // Footer
     y += 20;
@@ -104,7 +108,7 @@ export async function POST(req: NextRequest) {
       "Thank you for choosing Frank's Home Improvement",
       pageWidth / 2,
       y + 6,
-      { align: "center" }
+      { align: "center" },
     );
 
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));

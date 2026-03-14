@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     if (!text && !subject) {
       return NextResponse.json(
         { error: "Subject or text content required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -20,15 +20,14 @@ export async function POST(req: Request) {
     if (!supabaseUrl || !supabaseKey) {
       return NextResponse.json(
         { error: "Missing Supabase admin keys" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
     // Resolve organization — use sender email or fallback
-    const senderEmail =
-      typeof from === "object" ? from.address : from || "";
+    const senderEmail = typeof from === "object" ? from.address : from || "";
 
     let orgId: string | null = null;
 
@@ -53,7 +52,7 @@ export async function POST(req: Request) {
     if (!orgId) {
       return NextResponse.json(
         { error: "No organization found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -78,7 +77,7 @@ export async function POST(req: Request) {
     if (insertError) {
       return NextResponse.json(
         { error: "Failed to save draft: " + insertError.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -90,9 +89,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Email simulation error:", error);
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

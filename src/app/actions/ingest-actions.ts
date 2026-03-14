@@ -10,7 +10,14 @@ export type IngestResult = {
   error?: string;
 };
 
-const RUSH_KEYWORDS = ["rush", "asap", "urgent", "emergency", "immediately", "right away"];
+const RUSH_KEYWORDS = [
+  "rush",
+  "asap",
+  "urgent",
+  "emergency",
+  "immediately",
+  "right away",
+];
 
 function detectUrgency(subject: string, body: string): "rush" | "standard" {
   const text = `${subject} ${body}`.toLowerCase();
@@ -30,7 +37,9 @@ function extractAddress(subject: string): string | null {
   return null;
 }
 
-export async function createJobFromEmail(formData: FormData): Promise<IngestResult> {
+export async function createJobFromEmail(
+  formData: FormData,
+): Promise<IngestResult> {
   const supabase = await createClient();
 
   const subject = (formData.get("subject") as string) || "";
@@ -78,7 +87,10 @@ export async function createJobFromEmail(formData: FormData): Promise<IngestResu
     .single();
 
   if (jobError || !job) {
-    return { success: false, error: jobError?.message || "Failed to create job." };
+    return {
+      success: false,
+      error: jobError?.message || "Failed to create job.",
+    };
   }
 
   // Upload attachments
@@ -110,6 +122,7 @@ export async function createJobFromEmail(formData: FormData): Promise<IngestResu
   }
 
   revalidatePath("/ingest");
+  revalidatePath("/dashboard");
   revalidatePath("/ops/work-orders");
 
   return {

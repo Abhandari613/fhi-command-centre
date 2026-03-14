@@ -40,7 +40,7 @@ export function CalendarView() {
         setJobs(jobData as ScheduledJob[]);
         setGcalConnected(gcalStatus.connected);
         setLoading(false);
-      }
+      },
     );
   }, []);
 
@@ -49,11 +49,11 @@ export function CalendarView() {
 
   const prevMonth = () =>
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
     );
   const nextMonth = () =>
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
     );
 
   const calendarDays = useMemo(() => {
@@ -150,7 +150,10 @@ export function CalendarView() {
       <GlassCard className="p-4">
         <div className="grid grid-cols-7 gap-1 text-center mb-2">
           {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-            <div key={`${d}-${i}`} className="text-xs font-bold opacity-50 py-2">
+            <div
+              key={`${d}-${i}`}
+              className="text-xs font-bold opacity-50 py-2"
+            >
               {d}
             </div>
           ))}
@@ -161,21 +164,20 @@ export function CalendarView() {
               return <div key={`empty-${index}`} className="aspect-square" />;
 
             const dayJobs = getJobsForDate(date);
-            const isToday =
-              new Date().toDateString() === date.toDateString();
+            const isToday = new Date().toDateString() === date.toDateString();
 
             return (
               <div
                 key={date.toISOString()}
                 className={cn(
                   "aspect-square rounded-lg border border-white/5 flex flex-col items-center justify-start pt-1 relative overflow-hidden transition-colors hover:bg-white/5",
-                  isToday && "bg-primary/20 border-primary/50"
+                  isToday && "bg-primary/20 border-primary/50",
                 )}
               >
                 <span
                   className={cn(
                     "text-xs font-medium z-10",
-                    isToday && "text-primary font-bold"
+                    isToday && "text-primary font-bold",
                   )}
                 >
                   {date.getDate()}
@@ -187,7 +189,7 @@ export function CalendarView() {
                       href={`/ops/jobs/${j.id}`}
                       className={cn(
                         "h-1.5 rounded-full w-full",
-                        statusColor[j.status] || "bg-gray-500/50"
+                        statusColor[j.status] || "bg-gray-500/50",
                       )}
                       title={`${j.job_number || ""} ${j.property_address || ""}`}
                     />
@@ -226,7 +228,7 @@ export function CalendarView() {
                   <span
                     className={cn(
                       "w-2 h-2 rounded-full flex-shrink-0",
-                      statusColor[j.status] || "bg-gray-500/50"
+                      statusColor[j.status] || "bg-gray-500/50",
                     )}
                   />
                   <span className="font-medium text-sm truncate">
@@ -238,8 +240,7 @@ export function CalendarView() {
                     <CalendarIcon className="w-3.5 h-3.5 text-green-400 opacity-60" />
                   )}
                   <span className="text-xs opacity-50">
-                    {new Date(j.start_date!).getDate()}{" "}
-                    {monthName.slice(0, 3)}
+                    {new Date(j.start_date!).getDate()} {monthName.slice(0, 3)}
                   </span>
                 </div>
               </GlassCard>

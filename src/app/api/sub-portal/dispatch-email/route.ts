@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     if (!subEmail || !magicLink) {
       return NextResponse.json(
         { error: "subEmail and magicLink are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 

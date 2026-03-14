@@ -44,7 +44,7 @@ async function getExpenseCategoryId(supabase: any) {
 
 export async function recordJobRevenue(
   jobId: string,
-  amount: number
+  amount: number,
 ): Promise<ActionResult<{ transactionId: string }>> {
   const supabase = await getDb();
   const {
@@ -81,7 +81,10 @@ export async function recordJobRevenue(
 
   if (error) return { success: false, error: error.message };
 
-  await logJobEvent(jobId, "revenue_recorded", { amount, transactionId: txn.id });
+  await logJobEvent(jobId, "revenue_recorded", {
+    amount,
+    transactionId: txn.id,
+  });
 
   revalidatePath("/ops/finance");
   revalidatePath(`/ops/jobs/${jobId}`);
@@ -92,7 +95,7 @@ export async function recordSubPayout(
   jobId: string,
   subcontractorId: string,
   amount: number,
-  description: string
+  description: string,
 ): Promise<ActionResult<{ payoutId: string }>> {
   const supabase = await getDb();
   const {

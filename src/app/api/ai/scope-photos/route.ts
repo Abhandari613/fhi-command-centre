@@ -5,7 +5,9 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const SCOPE_PROMPT = `You are helping a painting and home repair contractor scope work from apartment inspection photos. List specific tasks visible in this photo as a JSON array of strings. Be concise and trade-specific (e.g. "Paint bedroom walls", "Replace kitchen cabinet doors", "Repair drywall patch approx 12 inch"). Return only the JSON array, no other text.`;
 
-async function fetchImageAsBase64(url: string): Promise<{ data: string; mediaType: string }> {
+async function fetchImageAsBase64(
+  url: string,
+): Promise<{ data: string; mediaType: string }> {
   const res = await fetch(url);
   const buffer = await res.arrayBuffer();
   const data = Buffer.from(buffer).toString("base64");
@@ -18,7 +20,10 @@ export async function POST(req: NextRequest) {
     const { imageUrls } = (await req.json()) as { imageUrls: string[] };
 
     if (!imageUrls?.length) {
-      return NextResponse.json({ error: "No images provided" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No images provided" },
+        { status: 400 },
+      );
     }
 
     const allTasks: string[] = [];
@@ -37,7 +42,11 @@ export async function POST(req: NextRequest) {
                 type: "image",
                 source: {
                   type: "base64",
-                  media_type: mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+                  media_type: mediaType as
+                    | "image/jpeg"
+                    | "image/png"
+                    | "image/gif"
+                    | "image/webp",
                   data,
                 },
               },
@@ -51,10 +60,14 @@ export async function POST(req: NextRequest) {
       });
 
       const textBlock = response.content.find((b) => b.type === "text");
-      const text = textBlock && "text" in textBlock ? textBlock.text.trim() : "[]";
+      const text =
+        textBlock && "text" in textBlock ? textBlock.text.trim() : "[]";
 
       try {
-        const cleaned = text.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+        const cleaned = text
+          .replace(/```json?\n?/g, "")
+          .replace(/```/g, "")
+          .trim();
         const tasks = JSON.parse(cleaned);
         if (Array.isArray(tasks)) {
           allTasks.push(...tasks);
@@ -73,7 +86,7 @@ export async function POST(req: NextRequest) {
     console.error("Scope photo AI error:", err);
     return NextResponse.json(
       { error: err.message || "AI processing failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

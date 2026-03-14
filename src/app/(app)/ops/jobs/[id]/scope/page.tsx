@@ -50,7 +50,7 @@ export default function ScopePage() {
         id: t.id,
         description: t.description,
         is_confirmed: t.is_confirmed,
-      }))
+      })),
     );
     setLoaded(true);
   };
@@ -86,8 +86,8 @@ export default function ScopePage() {
   const toggleConfirm = (idx: number) => {
     setTasks((prev) =>
       prev.map((t, i) =>
-        i === idx ? { ...t, is_confirmed: !t.is_confirmed } : t
-      )
+        i === idx ? { ...t, is_confirmed: !t.is_confirmed } : t,
+      ),
     );
   };
 
@@ -108,7 +108,9 @@ export default function ScopePage() {
     setSaving(true);
     await saveJobTasks(id, tasks);
 
-    const confirmedIds = tasks.filter((t) => t.is_confirmed && t.id).map((t) => t.id!);
+    const confirmedIds = tasks
+      .filter((t) => t.is_confirmed && t.id)
+      .map((t) => t.id!);
     if (confirmedIds.length) {
       await confirmJobTasks(id, confirmedIds);
     }
@@ -125,7 +127,9 @@ export default function ScopePage() {
     );
   }
 
-  const photoAttachments = attachments.filter((a: any) => a.file_type === "photo");
+  const photoAttachments = attachments.filter(
+    (a: any) => a.file_type === "photo",
+  );
 
   return (
     <div className="space-y-6">
@@ -142,7 +146,8 @@ export default function ScopePage() {
           <div className="flex items-center gap-2 mb-3">
             <Camera className="w-4 h-4 opacity-60" />
             <span className="text-sm font-semibold opacity-80">
-              {photoAttachments.length} photo{photoAttachments.length !== 1 ? "s" : ""}
+              {photoAttachments.length} photo
+              {photoAttachments.length !== 1 ? "s" : ""}
             </span>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-2">
@@ -201,7 +206,9 @@ export default function ScopePage() {
                       : "border-white/30"
                   }`}
                 >
-                  {task.is_confirmed && <Check className="w-4 h-4 text-white" />}
+                  {task.is_confirmed && (
+                    <Check className="w-4 h-4 text-white" />
+                  )}
                 </div>
               </button>
               <span

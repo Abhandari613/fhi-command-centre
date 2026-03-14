@@ -1,12 +1,17 @@
 import { google } from "googleapis";
 
-const SCOPES = ["https://www.googleapis.com/auth/calendar"];
+const SCOPES = [
+  "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/gmail.modify",
+];
 
 function getOAuth2Client() {
   return new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/gcal/callback`
+    `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/gcal/callback`,
   );
 }
 
@@ -53,13 +58,13 @@ type JobEventInput = {
   address: string;
   taskSummary: string;
   startDate: string; // YYYY-MM-DD
-  endDate: string;   // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
   subEmails?: string[];
 };
 
 export async function createJobEvent(
   tokens: GCalTokens,
-  job: JobEventInput
+  job: JobEventInput,
 ): Promise<string | null> {
   const calendar = getAuthedClient(tokens);
   const calendarId = tokens.calendar_id || "primary";
@@ -85,7 +90,7 @@ export async function createJobEvent(
 export async function updateJobEvent(
   tokens: GCalTokens,
   eventId: string,
-  changes: Partial<JobEventInput>
+  changes: Partial<JobEventInput>,
 ): Promise<void> {
   const calendar = getAuthedClient(tokens);
   const calendarId = tokens.calendar_id || "primary";
@@ -114,7 +119,7 @@ export async function updateJobEvent(
 
 export async function deleteJobEvent(
   tokens: GCalTokens,
-  eventId: string
+  eventId: string,
 ): Promise<void> {
   const calendar = getAuthedClient(tokens);
   const calendarId = tokens.calendar_id || "primary";

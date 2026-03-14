@@ -6,31 +6,42 @@ import Link from "next/link";
 import { AnimatedButton } from "@/components/ui/AnimatedButton";
 
 export default function CreateQuotePage({
-    searchParams,
+  searchParams,
 }: {
-    searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
-    const clientId = typeof searchParams.clientId === 'string' ? searchParams.clientId : undefined;
+  const clientId =
+    typeof searchParams.clientId === "string"
+      ? searchParams.clientId
+      : undefined;
 
-    return (
-        <div className="relative min-h-screen pb-24 overflow-hidden">
-            <div className="aurora-blur bg-secondary/20 top-[-50px] right-[-50px]" />
+  return (
+    <div className="relative min-h-screen pb-24 overflow-hidden">
+      <div className="aurora-blur bg-secondary/20 top-[-50px] right-[-50px]" />
 
-            <div className="p-6 flex flex-col gap-6 relative z-10">
-                <header className="flex items-center gap-4">
-                    <Link href="/ops/quotes">
-                        <AnimatedButton variant="ghost" size="icon" className="rounded-full w-10 h-10 bg-white/5 hover:bg-white/10">
-                            <ArrowLeft className="w-5 h-5" />
-                        </AnimatedButton>
-                    </Link>
-                    <div>
-                        <h1 className="text-3xl font-black tracking-tighter text-white">New Quote</h1>
-                        <p className="text-white/60 text-sm font-medium">Create a new job estimate</p>
-                    </div>
-                </header>
+      <div className="p-6 flex flex-col gap-6 relative z-10">
+        <header className="flex items-center gap-4">
+          <Link href="/ops/quotes">
+            <AnimatedButton
+              variant="ghost"
+              size="icon"
+              className="rounded-full w-10 h-10 bg-white/5 hover:bg-white/10"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </AnimatedButton>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-black tracking-tighter text-white">
+              New Quote
+            </h1>
+            <p className="text-white/60 text-sm font-medium">
+              Create a new job estimate
+            </p>
+          </div>
+        </header>
 
-                <QuoteBuilder initialClientId={clientId} />
-            </div>
-        </div>
-    );
+        <QuoteBuilder initialClientId={clientId} />
+      </div>
+    </div>
+  );
 }

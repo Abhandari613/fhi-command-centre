@@ -16,7 +16,9 @@ export function CompletionProgressBar({
         <span className="opacity-60">
           {linked}/{total} tasks verified
         </span>
-        <span className={isComplete ? "text-green-400 font-bold" : "opacity-40"}>
+        <span
+          className={isComplete ? "text-green-400 font-bold" : "opacity-40"}
+        >
           {pct}%
         </span>
       </div>
