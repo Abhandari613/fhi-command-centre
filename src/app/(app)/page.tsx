@@ -177,50 +177,62 @@ export default function Dashboard() {
             Quick Actions
           </h2>
           <div className="grid grid-cols-2 gap-2">
+            {/* Dispatch Subs — hero button, ember-lit */}
             <Link href="/ops/subs" className="col-span-1">
-              <AnimatedButton className="w-full h-28 flex-col gap-2.5 rounded-lg bg-gradient-to-b from-primary/15 to-primary/5 border-primary/20 hover:border-primary/40">
-                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary shadow-[0_0_12px_-2px_rgba(255,107,0,0.3)]">
-                  <Hammer className="w-5 h-5" />
+              <AnimatedButton className="w-full h-28 flex-col gap-2.5 rounded-sm bg-gradient-to-br from-primary/20 via-primary/8 to-transparent border-primary/25 hover:border-primary/50 relative overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-primary/60 via-primary/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 w-px h-6 bg-gradient-to-t from-primary/40 to-transparent" />
+                <div className="w-10 h-10 rounded-sm bg-primary/20 flex items-center justify-center text-primary shadow-[0_0_16px_-2px_rgba(255,107,0,0.4)] border border-primary/20">
+                  <Hammer className="w-5 h-5" strokeWidth={2.5} />
                 </div>
-                <span className="font-bold text-sm">Dispatch Subs</span>
+                <span className="font-black text-sm tracking-wide uppercase">Dispatch Subs</span>
               </AnimatedButton>
             </Link>
 
+            {/* Snap Receipt — steel with chrome edge */}
             <Link href="/ops/receipts" className="col-span-1">
-              <AnimatedButton variant="secondary" className="w-full h-28 flex-col gap-2.5 rounded-lg">
-                <div className="w-10 h-10 rounded-lg bg-white/[0.04] flex items-center justify-center border border-white/[0.06]">
-                  <Camera className="w-5 h-5 text-gray-400" />
+              <AnimatedButton variant="secondary" className="w-full h-28 flex-col gap-2.5 rounded-sm relative overflow-hidden hover:border-primary/15">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-white/[0.08] via-white/[0.04] to-transparent" />
+                <div className="w-10 h-10 rounded-sm bg-white/[0.05] flex items-center justify-center border border-white/[0.08] shadow-[0_2px_8px_-2px_rgba(0,0,0,0.6)]">
+                  <Camera className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
                 </div>
-                <span className="font-bold text-sm">Snap Receipt</span>
+                <span className="font-black text-sm tracking-wide uppercase">Snap Receipt</span>
               </AnimatedButton>
             </Link>
 
+            {/* B2B Clients — steel compact */}
             <Link href="/ops/clients" className="col-span-1">
-              <AnimatedButton variant="secondary" className="w-full h-20 flex-col gap-1.5 rounded-lg">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/10">
-                  <User className="w-4 h-4" />
+              <AnimatedButton variant="secondary" className="w-full h-20 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-purple-500/20 via-transparent to-transparent" />
+                <div className="w-8 h-8 rounded-sm bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/15 shadow-[0_0_10px_-3px_rgba(168,85,247,0.2)]">
+                  <User className="w-4 h-4" strokeWidth={2.5} />
                 </div>
-                <span className="font-semibold text-xs">B2B Clients</span>
+                <span className="font-bold text-xs tracking-wide uppercase">B2B Clients</span>
               </AnimatedButton>
             </Link>
 
+            {/* Work Orders — steel compact */}
             <Link href="/ops/jobs" className="col-span-1">
-              <AnimatedButton variant="secondary" className="w-full h-20 flex-col gap-1.5 rounded-lg">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/10">
-                  <List className="w-4 h-4" />
+              <AnimatedButton variant="secondary" className="w-full h-20 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-emerald-500/20 via-transparent to-transparent" />
+                <div className="w-8 h-8 rounded-sm bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/15 shadow-[0_0_10px_-3px_rgba(16,185,129,0.2)]">
+                  <List className="w-4 h-4" strokeWidth={2.5} />
                 </div>
-                <span className="font-semibold text-xs">Work Orders</span>
+                <span className="font-bold text-xs tracking-wide uppercase">Work Orders</span>
               </AnimatedButton>
             </Link>
 
+            {/* Finance Hub — full-width steel bar with ember accent */}
             <Link href="/ops/finance" className="col-span-2">
-              <AnimatedButton variant="secondary" className="w-full h-16 flex-row gap-3 rounded-lg">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/10">
-                  <TrendingUp className="w-4 h-4" />
+              <AnimatedButton variant="secondary" className="w-full h-16 flex-row gap-3 rounded-sm relative overflow-hidden hover:border-primary/15">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-amber-500/30 via-amber-500/10 to-transparent" />
+                <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-amber-500/30 via-transparent to-transparent" />
+                <div className="w-8 h-8 rounded-sm bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/15 shadow-[0_0_10px_-3px_rgba(245,158,11,0.2)]">
+                  <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
                 </div>
                 <div className="flex flex-col items-start">
-                  <span className="font-bold text-sm">Finance Hub</span>
-                  <span className="text-[10px] text-gray-500">Job Costing & Profitability</span>
+                  <span className="font-black text-sm tracking-wide uppercase">Finance Hub</span>
+                  <span className="text-[10px] text-gray-500 tracking-wider uppercase">Job Costing & Profitability</span>
                 </div>
               </AnimatedButton>
             </Link>

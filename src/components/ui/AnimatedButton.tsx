@@ -31,11 +31,12 @@ export function AnimatedButton({
             "active:from-[#e05e00] active:to-[#cc5500]",
         ].join(" "),
         secondary: [
-            "bg-[#141416] hover:bg-[#1a1a1e]",
+            "bg-[#0e0e10]/90 hover:bg-[#141416]/95",
+            "backdrop-blur-sm",
             "text-gray-200 hover:text-white",
-            "border border-white/[0.06] hover:border-white/[0.12]",
-            "shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset,0_2px_8px_-2px_rgba(0,0,0,0.5)]",
-            "hover:shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset,0_4px_16px_-2px_rgba(0,0,0,0.6)]",
+            "border border-white/[0.06] hover:border-white/[0.10]",
+            "shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset,0_4px_16px_-2px_rgba(0,0,0,0.6)]",
+            "hover:shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset,0_6px_20px_-2px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,107,0,0.06)]",
         ].join(" "),
         danger: [
             "bg-red-950/50 hover:bg-red-900/50",
