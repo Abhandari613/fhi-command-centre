@@ -1,33 +1,46 @@
 @import "tailwindcss";
 
+/* ============================================================
+   TRAIL BOSS DESIGN SYSTEM
+   Inspired by 2026 Chevy Trail Boss — obsidian black,
+   sharp angular lines, ember-orange accents, premium steel feel
+   ============================================================ */
+
 @theme {
+  /* Ember Orange — Trail Boss LED signature lighting */
   --color-primary: #ff6b00;
-  /* Safety Orange */
   --color-primary-foreground: #ffffff;
-  --color-secondary: #64748b;
-  /* Slate Steel */
+
+  /* Steel Gray — brushed metal secondary */
+  --color-secondary: #6b7280;
+
+  /* Amber — warning/highlight */
   --color-accent: #f59e0b;
-  /* Amber warning/highlight */
 
-  /* Lighter Dark Mode Palette */
-  --color-background-dark: #1e293b;
-  /* Slate 800 - Lighter than 950 */
-  --color-background-card: rgba(255, 255, 255, 0.05);
+  /* Obsidian Surface Hierarchy */
+  --color-background-dark: #0a0a0a;
+  --color-background-card: rgba(255, 255, 255, 0.03);
 
-  --color-glass-border: rgba(255, 255, 255, 0.15);
-  --color-glass-bg: rgba(255, 255, 255, 0.05);
+  /* Steel borders */
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+  --color-glass-bg: rgba(255, 255, 255, 0.03);
 
+  /* Typography */
   --font-display: var(--font-geist-sans), "Inter", "Outfit", sans-serif;
 
+  /* Animations */
   --animate-float: float 6s ease-in-out infinite;
+  --animate-ember-pulse: ember-pulse 3s ease-in-out infinite;
 }
 
 :root {
-  --background: #1e293b;
-  --foreground: #f8fafc;
-  /* Slate 50 - Brighter text */
+  --background: #0a0a0a;
+  --foreground: #f0f0f0;
 }
 
+/* ============================================================
+   Body — Pure obsidian, no background images
+   ============================================================ */
 body {
   background: var(--background);
   color: var(--foreground);
@@ -35,25 +48,26 @@ body {
   -webkit-tap-highlight-color: transparent;
   min-height: 100dvh;
   overflow-x: hidden;
-  /* Painter's Drop Sheet - Real Photographic Texture */
-  background-color: #1c1917;
-  /* Warm Stone Base */
-  background-image:
-    /* Lighter Vignette: Shifted down to keep top clear for paint can/brush details - Darkened by 30% per request */
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0.9) 100%),
-    /* Real Photo Background */
-    url("/backgrounds/canvas-real.jpg");
 
+  /* Carbon fiber micro-texture (pure CSS) */
+  background-color: #0a0a0a;
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 107, 0, 0.03) 0%, transparent 60%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.008) 2px,
+      rgba(255, 255, 255, 0.008) 4px
+    );
   background-attachment: fixed;
-  background-size: cover;
-  background-position: center top;
-  /* Ensure top details (paint cans) are visible */
-  background-repeat: no-repeat;
 }
 
-/* Scrollbar */
+/* ============================================================
+   Scrollbar — steel thin
+   ============================================================ */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -61,80 +75,138 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
+  background: rgba(255, 107, 0, 0.3);
+  border-radius: 2px;
 }
 
-/* Aurora Blur Effect */
-.aurora-blur {
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 0, 0.5);
+}
+
+/* ============================================================
+   Ember Ambient Light — replaces aurora blobs
+   ============================================================ */
+.ember-glow {
   position: fixed;
-  width: 300px;
-  height: 300px;
+  width: 500px;
+  height: 500px;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.3;
+  filter: blur(120px);
+  opacity: 0.07;
   z-index: -1;
   pointer-events: none;
 }
 
-/* Glassmorphism Utilities - Unified Dark Theme */
-@utility glass {
-  background: rgba(20, 20, 25, 0.85);
-  /* Primary Dark Tile */
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+/* Keep aurora-blur class for backwards compat during transition */
+.aurora-blur {
+  position: fixed;
+  width: 400px;
+  height: 400px;
+  border-radius: 40%;
+  filter: blur(100px);
+  opacity: 0.06;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Steel Surface Utilities — sharp, angular, premium
+   ============================================================ */
+@utility steel {
+  background: rgba(14, 14, 16, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.4),
-    0 10px 15px -3px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 4px 16px -2px rgba(0, 0, 0, 0.6),
+    0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background: rgba(30, 30, 35, 0.90);
-    /* Slightly lighter on hover */
-    transform: translateY(-2px);
+    background: rgba(18, 18, 22, 0.95);
+    border-color: rgba(255, 107, 0, 0.15);
     box-shadow:
-      0 20px 25px -5px rgba(0, 0, 0, 0.5),
-      0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+      0 8px 24px -4px rgba(0, 0, 0, 0.7),
+      0 0 0 1px rgba(255, 107, 0, 0.08);
   }
 }
 
-/* Unify specific glass types to match the main dark glass */
+/* Backward-compatible glass aliases → now map to steel */
+@utility glass {
+  @apply steel;
+}
+
 @utility glass-bright {
-  @apply glass;
-  /* Override if subtle distinction needed, but keeping unified for now */
-  background: rgba(25, 25, 30, 0.85);
+  @apply steel;
+  background: rgba(18, 18, 22, 0.90);
 }
 
 @utility glass-panel {
-  @apply glass;
-  /* Slightly more transparent for panels if needed, but keeping dark */
-  background: rgba(20, 20, 25, 0.80);
+  @apply steel;
+  background: rgba(12, 12, 14, 0.88);
 }
 
 @utility glass-solid {
-  @apply glass;
-  background: rgba(10, 10, 12, 0.95);
-  /* High opacity, very dark */
-  border-color: rgba(255, 255, 255, 0.1);
+  @apply steel;
+  background: rgba(8, 8, 10, 0.97);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================================
+   Ember accents — glow effects
+   ============================================================ */
+@utility ember-border-l {
+  border-left: 3px solid var(--color-primary);
+  box-shadow: -4px 0 12px -4px rgba(255, 107, 0, 0.3);
+}
+
+@utility ember-border-t {
+  border-top: 2px solid var(--color-primary);
+  box-shadow: 0 -4px 12px -4px rgba(255, 107, 0, 0.3);
 }
 
 @utility text-glow {
-  text-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+  text-shadow: 0 0 20px rgba(255, 107, 0, 0.4);
 }
 
+@utility ember-ring {
+  box-shadow: 0 0 0 1px rgba(255, 107, 0, 0.3), 0 0 16px -4px rgba(255, 107, 0, 0.2);
+}
+
+/* ============================================================
+   Keyframes
+   ============================================================ */
 @keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
 
-  50% {
-    transform: translateY(-10px);
-  }
+@keyframes ember-pulse {
+  0%, 100% { opacity: 0.06; }
+  50% { opacity: 0.12; }
+}
 
-  100% {
-    transform: translateY(0px);
-  }
+@keyframes press-in {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+/* ============================================================
+   Focus styles — ember ring
+   ============================================================ */
+*:focus-visible {
+  outline: 2px solid rgba(255, 107, 0, 0.5);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Selection color
+   ============================================================ */
+::selection {
+  background: rgba(255, 107, 0, 0.3);
+  color: white;
 }

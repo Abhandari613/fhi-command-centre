@@ -17,13 +17,13 @@ export function GlassCard({ children, className, intensity = "normal", ...props 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
       className={cn(
         intensityClass,
-        "rounded-2xl border border-white/5 shadow-xl",
+        "rounded-lg border border-white/[0.06] shadow-xl",
         className
       )}
       {...props}

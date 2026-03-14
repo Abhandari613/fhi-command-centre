@@ -55,26 +55,27 @@ export function GlassSelect({
                 disabled={disabled}
                 className={`
                     w-full flex items-center justify-between text-left
-                    bg-black/20 border border-white/10 rounded-lg p-3 text-sm
-                    focus:outline-none focus:border-primary/50 transition-colors
-                    ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-white/5'}
-                    ${!value ? 'text-white/30' : 'text-white'}
+                    bg-[#111113] border border-white/[0.06] rounded-lg p-3 text-sm
+                    focus:outline-none focus:border-primary/40 transition-all duration-200
+                    shadow-[0_1px_0_0_rgba(255,255,255,0.02)_inset,0_2px_4px_-1px_rgba(0,0,0,0.4)]
+                    ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-[#161618] hover:border-white/[0.1]'}
+                    ${!value ? 'text-gray-500' : 'text-white'}
                 `}
             >
                 <span className="truncate">{selectedLabel}</span>
                 <ChevronDown
-                    className={`w-4 h-4 text-white/50 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                    className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
                 />
             </button>
 
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        initial={{ opacity: 0, y: -4, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.15, ease: "easeOut" }}
-                        className="absolute z-50 w-full mt-2 overflow-hidden bg-[#1A1A1A] border border-white/10 rounded-lg shadow-xl ring-1 ring-black/5"
+                        exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                        transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+                        className="absolute z-50 w-full mt-1 overflow-hidden bg-[#111113] border border-white/[0.08] rounded-lg shadow-[0_8px_32px_-4px_rgba(0,0,0,0.8)]"
                     >
                         <div className="max-h-60 overflow-auto py-1">
                             {options.map((option) => (
@@ -83,10 +84,10 @@ export function GlassSelect({
                                     type="button"
                                     onClick={() => handleSelect(option.value)}
                                     className={`
-                                        w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors
+                                        w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-all duration-150
                                         ${value === option.value
-                                            ? 'bg-primary/20 text-primary font-medium'
-                                            : 'text-gray-300 hover:bg-white/5 hover:text-white'}
+                                            ? 'bg-primary/10 text-primary font-medium border-l-2 border-primary'
+                                            : 'text-gray-400 hover:bg-white/[0.03] hover:text-white border-l-2 border-transparent'}
                                     `}
                                 >
                                     <span className="truncate">{option.label}</span>
