@@ -1,22 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { AuroraBackground } from "@/components/ui/AuroraBackground";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { MapPin, Calendar, CheckCircle, Loader2, Camera } from "lucide-react";
+import { MapPin, Calendar, CheckCircle, Loader2, Camera, Image } from "lucide-react";
 
 export default function MagicLinkPage() {
     const { token } = useParams();
     const supabase = createClient() as any;
     const [job, setJob] = useState<any>(null);
     const [assignment, setAssignment] = useState<any>(null);
+    const [tasks, setTasks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [markingComplete, setMarkingComplete] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchJobDetails = async () => {
-        // 1. Find assignment by token
         const { data: assignData, error: assignError } = await supabase
             .from('job_assignments')
             .select('*, jobs(*, clients(name, address, phone))')
@@ -31,6 +34,17 @@ export default function MagicLinkPage() {
 
         setAssignment(assignData);
         setJob(assignData.jobs);
+
+        // Load job tasks
+        if (assignData.jobs?.id) {
+            const { data: taskData } = await supabase
+                .from('job_tasks')
+                .select('id, description')
+                .eq('job_id', assignData.jobs.id)
+                .eq('is_confirmed', true);
+            setTasks(taskData || []);
+        }
+
         setLoading(false);
     };
 
@@ -51,6 +65,43 @@ export default function MagicLinkPage() {
             setAssignment({ ...assignment, status: 'completed' });
         }
         setMarkingComplete(false);
+    };
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files?.length) return;
+
+        setUploading(true);
+
+        for (const file of Array.from(files)) {
+            const reader = new FileReader();
+            const base64 = await new Promise<string>((resolve) => {
+                reader.onload = () => resolve(reader.result as string);
+                reader.readAsDataURL(file);
+            });
+
+            try {
+                const res = await fetch('/api/sub-portal/upload-photo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token,
+                        fileBase64: base64,
+                        fileName: file.name,
+                    }),
+                });
+
+                const data = await res.json();
+                if (data.success && data.url) {
+                    setUploadedPhotos(prev => [...prev, data.url]);
+                }
+            } catch (err) {
+                console.error('Upload failed:', err);
+            }
+        }
+
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     if (loading) return <div className="min-h-screen bg-black text-white flex items-center justify-center"><Loader2 className="animate-spin w-8 h-8" /></div>;
@@ -80,22 +131,50 @@ export default function MagicLinkPage() {
 
                 <GlassCard className="p-5 space-y-4">
                     <h3 className="font-bold border-b border-white/5 pb-2">Job Details</h3>
-
                     <div className="space-y-3 text-sm">
                         <div className="flex gap-3">
                             <Calendar className="w-4 h-4 opacity-50" />
                             <div>
                                 <div className="opacity-50 text-xs uppercase font-bold">Start Date</div>
-                                <div>{new Date(job.start_date).toLocaleDateString()}</div>
+                                <div>{job.start_date ? new Date(job.start_date).toLocaleDateString() : 'TBD'}</div>
                             </div>
                         </div>
-
                         <div>
                             <div className="opacity-50 text-xs uppercase font-bold mb-1">Description</div>
                             <p className="leading-relaxed opacity-90">{job.description || "No description provided."}</p>
                         </div>
                     </div>
                 </GlassCard>
+
+                {/* Task list */}
+                {tasks.length > 0 && (
+                    <GlassCard className="p-5 space-y-3">
+                        <h3 className="font-bold border-b border-white/5 pb-2">Tasks ({tasks.length})</h3>
+                        <ul className="space-y-2">
+                            {tasks.map((task: any) => (
+                                <li key={task.id} className="text-sm flex items-start gap-2">
+                                    <CheckCircle className="w-4 h-4 opacity-30 mt-0.5 flex-shrink-0" />
+                                    <span>{task.description}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </GlassCard>
+                )}
+
+                {/* Uploaded photos */}
+                {uploadedPhotos.length > 0 && (
+                    <GlassCard className="p-5">
+                        <h3 className="font-bold border-b border-white/5 pb-2 mb-3 flex items-center gap-2">
+                            <Image className="w-4 h-4" />
+                            Uploaded ({uploadedPhotos.length})
+                        </h3>
+                        <div className="grid grid-cols-3 gap-2">
+                            {uploadedPhotos.map((url, i) => (
+                                <img key={i} src={url} alt={`Photo ${i + 1}`} className="w-full aspect-square object-cover rounded-lg" />
+                            ))}
+                        </div>
+                    </GlassCard>
+                )}
 
                 {/* Assignment Status */}
                 <div className="space-y-4">
@@ -121,10 +200,25 @@ export default function MagicLinkPage() {
                     )}
                 </div>
 
+                {/* Photo upload */}
                 <div className="flex gap-2">
-                    <button className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2">
-                        <Camera className="w-4 h-4" /> Upload Photo
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2"
+                    >
+                        {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                        {uploading ? "Uploading..." : "Upload Completion Photos"}
                     </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        capture="environment"
+                        className="hidden"
+                        onChange={handlePhotoUpload}
+                    />
                 </div>
             </div>
         </div>

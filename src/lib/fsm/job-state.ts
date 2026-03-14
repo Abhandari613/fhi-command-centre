@@ -1,25 +1,37 @@
-export type JobStatus = 'draft' | 'sent' | 'approved' | 'active' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+export type JobStatus =
+    | 'incoming' | 'draft' | 'sent' | 'quoted' | 'approved'
+    | 'active' | 'scheduled' | 'in_progress'
+    | 'completed' | 'invoiced' | 'paid'
+    | 'cancelled';
 
 export const JOB_STATUS_FLOW: Record<JobStatus, JobStatus[]> = {
-    draft: ['sent', 'cancelled'],
-    sent: ['approved', 'cancelled', 'draft'], // Can go back to draft if rejected/edited
+    incoming: ['draft', 'cancelled'],
+    draft: ['sent', 'quoted', 'cancelled'],
+    sent: ['approved', 'cancelled', 'draft'],
+    quoted: ['approved', 'in_progress', 'cancelled', 'draft'], // Dashboard shortcut: quoted → in_progress
     approved: ['active', 'cancelled'],
-    active: ['scheduled', 'cancelled', 'completed'], // Completed allowed if skipped usage of scheduled
-    scheduled: ['in_progress', 'cancelled', 'active'], // Back to active if unscheduled
+    active: ['scheduled', 'cancelled', 'completed'],
+    scheduled: ['in_progress', 'cancelled', 'active'],
     in_progress: ['completed', 'cancelled', 'scheduled'],
-    completed: ['active'], // Re-open if needed
-    cancelled: ['draft'] // Revive as draft
+    completed: ['invoiced', 'active'], // invoiced is the next step; active re-opens
+    invoiced: ['paid', 'completed'], // paid is the next step; completed rolls back
+    paid: [], // Terminal state
+    cancelled: ['draft'],
 };
 
 export const STATUS_LABELS: Record<JobStatus, string> = {
+    incoming: 'Incoming',
     draft: 'Draft',
     sent: 'Sent to Client',
+    quoted: 'Quoted',
     approved: 'Quote Approved',
     active: 'Active Job',
     scheduled: 'Scheduled',
     in_progress: 'In Progress',
     completed: 'Completed',
-    cancelled: 'Cancelled'
+    invoiced: 'Invoiced',
+    paid: 'Paid',
+    cancelled: 'Cancelled',
 };
 
 /**

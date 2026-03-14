@@ -20,7 +20,7 @@ import { createActionError, ActionResult } from '@/lib/core/actions/types';
  * @intent Uploads a photo to Supabase storage and creates a DB record linked to a job.
  * @generated AI-assisted
  */
-export async function uploadJobPhoto(input: unknown): Promise<ActionResult<void>> {
+export async function uploadJobPhoto(input: unknown): Promise<ActionResult<{ url: string }>> {
     return withActionValidation(uploadPhotoSchema, input, async (validatedData) => {
         try {
             const { jobId, photoType, fileBase64, fileName } = validatedData;
@@ -71,7 +71,7 @@ export async function uploadJobPhoto(input: unknown): Promise<ActionResult<void>
             revalidatePath(`/ops/jobs/${jobId}`);
             revalidatePath(`/ops/quotes/${jobId}`);
 
-            return { success: true };
+            return { success: true, data: { url: publicUrl } };
 
         } catch (error) {
             console.error("Upload Job Photo Error:", error);

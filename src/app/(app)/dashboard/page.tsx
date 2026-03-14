@@ -13,6 +13,7 @@ import {
   Hammer,
   Receipt,
   CheckCircle,
+  ClipboardCheck,
   AlertTriangle,
   ChevronRight,
   Plus,
@@ -40,6 +41,11 @@ const STATUS_CONFIG: Record<
     icon: <Hammer className="w-5 h-5" />,
     color: "text-orange-400",
   },
+  completed: {
+    label: "Completed",
+    icon: <ClipboardCheck className="w-5 h-5" />,
+    color: "text-cyan-400",
+  },
   invoiced: {
     label: "Invoiced",
     icon: <Receipt className="w-5 h-5" />,
@@ -52,7 +58,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const STATUS_ORDER = ["incoming", "quoted", "in_progress", "invoiced", "paid"];
+const STATUS_ORDER = ["incoming", "quoted", "in_progress", "completed", "invoiced", "paid"];
 
 function sortJobs(jobs: DashboardJob[]): DashboardJob[] {
   return [...jobs].sort((a, b) => {

@@ -1,18 +1,20 @@
-
 import { getUncategorizedTransactions, getTaxCategories } from '@/app/actions/finance';
+import { getCompletedJobsFinanceSummary } from '@/app/actions/finance-bridge-actions';
 import { TransactionList } from '@/components/finance/TransactionList';
 import { UploadZone } from '@/components/finance/UploadZone';
 import { AutoCategorizeButton } from '@/components/finance/AutoCategorizeButton';
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import Link from 'next/link';
 
 export const metadata = {
     title: 'Finance Dashboard | Frank\'s Home Improvement',
 };
 
 export default async function FinancePage() {
-    const transactions = await getUncategorizedTransactions();
-    const categories = await getTaxCategories();
+    const [transactions, categories, jobProfits] = await Promise.all([
+        getUncategorizedTransactions(),
+        getTaxCategories(),
+        getCompletedJobsFinanceSummary(),
+    ]);
 
     // Server Action Wrapped for Upload Refresh
     // When generic client component finishes upload, it can call this via router.refresh() 
@@ -88,6 +90,56 @@ export default async function FinancePage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Job Profitability Section */}
+                {jobProfits.length > 0 && (
+                    <div className="mt-8">
+                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                            Job Profitability
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {jobProfits.map((jp: any) => {
+                                const margin = Number(jp.margin_pct) || 0;
+                                const marginColor = margin > 20
+                                    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                                    : margin > 10
+                                        ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
+                                        : 'text-red-400 bg-red-500/10 border-red-500/20';
+
+                                return (
+                                    <Link key={jp.job_id} href={`/ops/jobs/${jp.job_id}/finance`}>
+                                        <div className={`rounded-2xl border p-4 transition-all hover:scale-[1.02] ${marginColor}`}>
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <p className="font-bold text-sm text-white">{jp.job_number}</p>
+                                                    <p className="text-xs opacity-60 text-white truncate max-w-[200px]">{jp.property_address}</p>
+                                                </div>
+                                                <span className="text-xs font-bold uppercase px-2 py-0.5 rounded-full bg-white/10">
+                                                    {jp.status}
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+                                                <div>
+                                                    <p className="text-[10px] uppercase opacity-50 text-white">Revenue</p>
+                                                    <p className="text-sm font-bold text-white">${Number(jp.revenue || 0).toLocaleString()}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] uppercase opacity-50 text-white">Payouts</p>
+                                                    <p className="text-sm font-bold text-white">${Number(jp.total_payouts || 0).toLocaleString()}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] uppercase opacity-50 text-white">Margin</p>
+                                                    <p className="text-sm font-bold">{margin.toFixed(1)}%</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

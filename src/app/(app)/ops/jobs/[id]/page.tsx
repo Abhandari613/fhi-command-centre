@@ -1,20 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { RescopeReviewPanel } from "@/components/jobs/RescopeReviewPanel";
 import { getJobWithAttachments } from "@/app/actions/scope-actions";
 import { advanceJobStatus } from "@/app/actions/dashboard-jobs-actions";
+import { getUnconfirmedTasks } from "@/app/actions/rescope-actions";
+import { uploadJobPhoto } from "@/app/actions/photo-actions";
 import {
   MapPin,
   Mail,
   AlertTriangle,
   Camera,
+  CameraIcon,
   CheckSquare,
   FileText,
   Loader2,
   ChevronRight,
   ClipboardList,
+  DollarSign,
+  ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -35,8 +41,13 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   incoming: "bg-blue-500/20 text-blue-400",
+  draft: "bg-gray-500/20 text-gray-400",
   quoted: "bg-yellow-500/20 text-yellow-400",
+  approved: "bg-emerald-500/20 text-emerald-400",
+  active: "bg-teal-500/20 text-teal-400",
+  scheduled: "bg-indigo-500/20 text-indigo-400",
   in_progress: "bg-orange-500/20 text-orange-400",
+  completed: "bg-cyan-500/20 text-cyan-400",
   invoiced: "bg-purple-500/20 text-purple-400",
   paid: "bg-green-500/20 text-green-400",
 };
@@ -46,8 +57,12 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<any>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [unconfirmedTasks, setUnconfirmedTasks] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [advancing, setAdvancing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [rescopeLoading, setRescopeLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadJob();
@@ -58,6 +73,11 @@ export default function JobDetailPage() {
     setJob(data.job);
     setAttachments(data.attachments);
     setTasks(data.tasks);
+
+    // Load unconfirmed tasks for rescope panel
+    const pending = await getUnconfirmedTasks(id);
+    setUnconfirmedTasks(pending);
+
     setLoaded(true);
   };
 
@@ -66,6 +86,60 @@ export default function JobDetailPage() {
     await advanceJobStatus(id);
     await loadJob();
     setAdvancing(false);
+  };
+
+  const handleAddOnSitePhotos = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+
+    setUploading(true);
+    const uploadedUrls: string[] = [];
+
+    for (const file of Array.from(files)) {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      // Strip the data URL prefix
+      const fileBase64 = base64.split(",")[1];
+
+      const result = await uploadJobPhoto({
+        jobId: id,
+        photoType: "other",
+        fileBase64,
+        fileName: file.name,
+      });
+
+      if (result?.success && result.data?.url) {
+        uploadedUrls.push(result.data.url);
+      }
+    }
+
+    // Trigger AI rescope with uploaded photos
+    if (uploadedUrls.length > 0) {
+      setRescopeLoading(true);
+      try {
+        await fetch("/api/ai/rescope", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId: id, photoUrls: uploadedUrls }),
+        });
+      } catch (err) {
+        console.error("Rescope failed:", err);
+      }
+      setRescopeLoading(false);
+    }
+
+    setUploading(false);
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    await loadJob();
   };
 
   if (!loaded) {
@@ -91,6 +165,8 @@ export default function JobDetailPage() {
   );
   const photos = attachments.filter((a: any) => a.file_type === "photo");
   const statusColor = STATUS_COLORS[job.status] || "bg-white/10 text-white/60";
+  const showCompletionLink = ["in_progress", "completed", "invoiced", "paid"].includes(job.status);
+  const showFinanceLink = ["completed", "invoiced", "paid"].includes(job.status);
 
   return (
     <div className="space-y-5">
@@ -122,7 +198,7 @@ export default function JobDetailPage() {
             {STATUS_LABELS[job.status] || job.status}
           </span>
         </div>
-        {!["paid", "completed", "cancelled"].includes(job.status) && (
+        {!["paid", "cancelled"].includes(job.status) && (
           <button
             onClick={handleAdvance}
             disabled={advancing}
@@ -138,6 +214,13 @@ export default function JobDetailPage() {
           </button>
         )}
       </GlassCard>
+
+      {/* Rescope review panel */}
+      <RescopeReviewPanel
+        jobId={id}
+        tasks={unconfirmedTasks}
+        onUpdate={loadJob}
+      />
 
       {/* Quick info */}
       <GlassCard className="p-4 space-y-3">
@@ -186,13 +269,36 @@ export default function JobDetailPage() {
         </GlassCard>
       )}
 
-      {/* Photos */}
-      {photos.length > 0 && (
-        <GlassCard className="p-4">
-          <h3 className="text-sm font-bold opacity-60 mb-3 flex items-center gap-2">
+      {/* Photos + Add On-Site Photos */}
+      <GlassCard className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold opacity-60 flex items-center gap-2">
             <Camera className="w-4 h-4" />
             Photos ({photos.length})
           </h3>
+          <button
+            onClick={handleAddOnSitePhotos}
+            disabled={uploading || rescopeLoading}
+            className="bg-primary/20 hover:bg-primary/30 text-primary font-bold rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-all disabled:opacity-30"
+          >
+            {uploading || rescopeLoading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <CameraIcon className="w-3.5 h-3.5" />
+            )}
+            {rescopeLoading ? "Scoping..." : uploading ? "Uploading..." : "Add On-Site Photos"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            capture="environment"
+            className="hidden"
+            onChange={handlePhotoUpload}
+          />
+        </div>
+        {photos.length > 0 ? (
           <div className="grid grid-cols-3 gap-2">
             {photos.map((a: any) => (
               <img
@@ -203,8 +309,10 @@ export default function JobDetailPage() {
               />
             ))}
           </div>
-        </GlassCard>
-      )}
+        ) : (
+          <p className="text-xs opacity-40 text-center py-4">No photos yet</p>
+        )}
+      </GlassCard>
 
       {/* Tasks summary */}
       {confirmedTasks.length > 0 && (
@@ -244,6 +352,24 @@ export default function JobDetailPage() {
           <FileText className="w-5 h-5" />
           Build Quote
         </Link>
+        {showCompletionLink && (
+          <Link
+            href={`/ops/jobs/${id}/complete`}
+            className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
+          >
+            <ClipboardCheck className="w-5 h-5" />
+            Completion Report
+          </Link>
+        )}
+        {showFinanceLink && (
+          <Link
+            href={`/ops/jobs/${id}/finance`}
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
+          >
+            <DollarSign className="w-5 h-5" />
+            Job Finance
+          </Link>
+        )}
       </div>
     </div>
   );

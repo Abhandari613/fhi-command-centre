@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Briefcase, FileText, Plus, DollarSign } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, Plus, DollarSign, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav() {
@@ -14,6 +14,7 @@ export function BottomNav() {
         { name: "New Job", href: "/ingest", icon: Plus, isFab: true },
         { name: "Estimates", href: "/ops/quotes", icon: FileText },
         { name: "Finance", href: "/ops/finance", icon: DollarSign },
+        { name: "Test", href: "/ops/test-bench", icon: FlaskConical },
     ];
 
     return (

@@ -46,12 +46,46 @@ export async function dispatchJobToSub(jobId: string, subcontractorId: string): 
         return { success: false, error: "Failed to dispatch job" };
     }
 
-    // 4. Generate Link (Mock Email Send)
-    // In a real app, we would use Resend here.
-    const magicLink = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/tasks/${magicLinkToken}`;
-    console.log(`[MOCK EMAIL] Dispatching Job ${jobId} to Sub ${subcontractorId}. Link: ${magicLink}`);
+    // 4. Generate magic link
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const magicLink = `${baseUrl}/s/${magicLinkToken}`;
 
-    revalidatePath("/subs");
+    // 5. Send dispatch email via Resend
+    const { data: sub } = await supabase
+        .from("subcontractors")
+        .select("name, email")
+        .eq("id", subcontractorId)
+        .single();
+
+    const { data: job } = await supabase
+        .from("jobs")
+        .select("job_number, property_address")
+        .eq("id", jobId)
+        .single();
+
+    if (sub?.email) {
+        try {
+            const res = await fetch(`${baseUrl}/api/sub-portal/dispatch-email`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    subName: sub.name,
+                    subEmail: sub.email,
+                    jobNumber: job?.job_number || jobId.slice(0, 8),
+                    address: job?.property_address || "TBD",
+                    magicLink,
+                }),
+            });
+            if (!res.ok) {
+                console.error("Dispatch email failed:", await res.text());
+            }
+        } catch (err: any) {
+            console.error("Dispatch email error:", err.message);
+        }
+    }
+
+    revalidatePath("/ops/subs");
+    revalidatePath(`/ops/jobs/${jobId}`);
     return { success: true, data: { assignment, magicLink } };
 }
 

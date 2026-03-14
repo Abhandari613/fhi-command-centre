@@ -1,0 +1,305 @@
+"use server";
+
+import { createClient } from "@/utils/supabase/server";
+import { revalidatePath } from "next/cache";
+import { logJobEvent } from "@/app/actions/event-actions";
+import {
+  createJobEvent,
+  updateJobEvent,
+  refreshAccessToken,
+} from "@/lib/services/gcal";
+
+type ActionResult<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+
+async function getDb() {
+  return (await createClient()) as any;
+}
+
+async function getGCalTokens(supabase: any, orgId: string) {
+  const { data } = await supabase
+    .from("gcal_tokens")
+    .select("*")
+    .eq("organization_id", orgId)
+    .limit(1)
+    .single();
+
+  if (!data) return null;
+
+  // Refresh if expired
+  const expiry = new Date(data.token_expiry);
+  if (expiry < new Date()) {
+    try {
+      const refreshed = await refreshAccessToken(data.refresh_token);
+      await supabase
+        .from("gcal_tokens")
+        .update({
+          access_token: refreshed.access_token,
+          token_expiry: new Date(
+            refreshed.expiry_date || Date.now() + 3600000
+          ).toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", data.id);
+
+      return {
+        ...data,
+        access_token: refreshed.access_token,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  return data;
+}
+
+export async function getGCalStatus(): Promise<{
+  connected: boolean;
+  calendarId?: string;
+}> {
+  const supabase = await getDb();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { connected: false };
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("organization_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.organization_id) return { connected: false };
+
+  const tokens = await getGCalTokens(supabase, profile.organization_id);
+  return {
+    connected: !!tokens,
+    calendarId: tokens?.calendar_id,
+  };
+}
+
+export async function disconnectGCal(): Promise<ActionResult<void>> {
+  const supabase = await getDb();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Unauthorized" };
+
+  const { error } = await supabase
+    .from("gcal_tokens")
+    .delete()
+    .eq("user_id", user.id);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/ops/schedule");
+  return { success: true };
+}
+
+export async function scheduleJob(
+  jobId: string,
+  startDate: string,
+  endDate: string,
+  subIds: string[]
+): Promise<ActionResult<{ gcalEventId?: string }>> {
+  const supabase = await getDb();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Unauthorized" };
+
+  // Get job details
+  const { data: job } = await supabase
+    .from("jobs")
+    .select(
+      "id, job_number, property_address, organization_id, status"
+    )
+    .eq("id", jobId)
+    .single();
+
+  if (!job) return { success: false, error: "Job not found" };
+
+  // Update job dates and status
+  await supabase
+    .from("jobs")
+    .update({
+      start_date: startDate,
+      end_date: endDate,
+      status: "scheduled",
+    })
+    .eq("id", jobId);
+
+  // Get task summary for calendar description
+  const { data: tasks } = await supabase
+    .from("job_tasks")
+    .select("description, quantity, unit_price")
+    .eq("job_id", jobId)
+    .eq("is_confirmed", true);
+
+  const taskSummary = (tasks || [])
+    .map((t: any) => `• ${t.description}`)
+    .join("\n");
+
+  // Get sub emails for assignments
+  let subEmails: string[] = [];
+  if (subIds.length > 0) {
+    const { data: subs } = await supabase
+      .from("subcontractors")
+      .select("id, email")
+      .in("id", subIds);
+
+    subEmails = (subs || [])
+      .filter((s: any) => s.email)
+      .map((s: any) => s.email);
+  }
+
+  // Try GCal sync
+  let gcalEventId: string | null = null;
+  const tokens = await getGCalTokens(supabase, job.organization_id);
+
+  if (tokens) {
+    try {
+      gcalEventId = await createJobEvent(tokens, {
+        jobNumber: job.job_number || jobId.slice(0, 8),
+        address: job.property_address || "TBD",
+        taskSummary: taskSummary || "No tasks specified",
+        startDate,
+        endDate,
+        subEmails,
+      });
+
+      if (gcalEventId) {
+        await supabase
+          .from("jobs")
+          .update({ gcal_event_id: gcalEventId })
+          .eq("id", jobId);
+      }
+    } catch (err: any) {
+      console.error("GCal create event error:", err.message);
+      // Non-blocking — job still gets scheduled even if GCal fails
+    }
+  }
+
+  // Create assignments for each sub
+  for (const subId of subIds) {
+    const { data: existing } = await supabase
+      .from("job_assignments")
+      .select("id")
+      .eq("job_id", jobId)
+      .eq("subcontractor_id", subId)
+      .single();
+
+    if (!existing) {
+      const { v4: uuidv4 } = await import("uuid");
+      await supabase.from("job_assignments").insert({
+        job_id: jobId,
+        subcontractor_id: subId,
+        status: "assigned",
+        magic_link_token: uuidv4(),
+        scheduled_start: startDate,
+        scheduled_end: endDate,
+        gcal_event_id: gcalEventId,
+      });
+    } else {
+      await supabase
+        .from("job_assignments")
+        .update({
+          scheduled_start: startDate,
+          scheduled_end: endDate,
+          gcal_event_id: gcalEventId,
+        })
+        .eq("id", existing.id);
+    }
+  }
+
+  await logJobEvent(jobId, "job_scheduled", {
+    startDate,
+    endDate,
+    subCount: subIds.length,
+    gcalSynced: !!gcalEventId,
+  });
+
+  revalidatePath(`/ops/jobs/${jobId}`);
+  revalidatePath("/ops/schedule");
+  return { success: true, data: { gcalEventId: gcalEventId || undefined } };
+}
+
+export async function rescheduleJob(
+  jobId: string,
+  newStart: string,
+  newEnd: string
+): Promise<ActionResult<void>> {
+  const supabase = await getDb();
+
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("id, job_number, property_address, organization_id, gcal_event_id")
+    .eq("id", jobId)
+    .single();
+
+  if (!job) return { success: false, error: "Job not found" };
+
+  await supabase
+    .from("jobs")
+    .update({ start_date: newStart, end_date: newEnd })
+    .eq("id", jobId);
+
+  // Update GCal if connected
+  if (job.gcal_event_id) {
+    const tokens = await getGCalTokens(supabase, job.organization_id);
+    if (tokens) {
+      try {
+        await updateJobEvent(tokens, job.gcal_event_id, {
+          startDate: newStart,
+          endDate: newEnd,
+        });
+      } catch (err: any) {
+        console.error("GCal reschedule error:", err.message);
+      }
+    }
+  }
+
+  // Update assignment dates
+  await supabase
+    .from("job_assignments")
+    .update({ scheduled_start: newStart, scheduled_end: newEnd })
+    .eq("job_id", jobId);
+
+  await logJobEvent(jobId, "job_rescheduled", { newStart, newEnd });
+
+  revalidatePath(`/ops/jobs/${jobId}`);
+  revalidatePath("/ops/schedule");
+  return { success: true };
+}
+
+export async function getScheduledJobs() {
+  const supabase = await getDb();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("organization_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.organization_id) return [];
+
+  const { data } = await supabase
+    .from("jobs")
+    .select(
+      "id, job_number, property_address, status, start_date, end_date, gcal_event_id"
+    )
+    .eq("organization_id", profile.organization_id)
+    .in("status", ["scheduled", "in_progress", "active", "completed"])
+    .not("start_date", "is", null)
+    .order("start_date");
+
+  return data || [];
+}

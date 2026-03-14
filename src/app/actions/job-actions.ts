@@ -50,14 +50,46 @@ export async function updateJobStatus(jobId: string, newStatus: JobStatus): Prom
     // 5. Log & Revalidate
     await logJobEvent(jobId, `status_change`, { from: job.status, to: newStatus });
 
-    // 6. Notifications
+    // 6. Side effects on status change
     if (newStatus === 'completed') {
-        // Simulate sending email
-        console.log(`[NOTIFICATION] Sending 'Job Complete' email to client for Job ${jobId}`);
-        await logJobEvent(jobId, 'notification_sent', { type: 'job_complete_email', recipient: 'client' });
+        await logJobEvent(jobId, 'status_completed', { note: 'Job marked complete — build completion report next' });
+    }
+
+    if (newStatus === 'invoiced') {
+        // Calculate final invoice amount from confirmed tasks
+        const { data: tasks } = await supabase
+            .from('job_tasks')
+            .select('quantity, unit_price')
+            .eq('job_id', jobId)
+            .eq('is_confirmed', true);
+
+        const total = (tasks || []).reduce(
+            (sum: number, t: any) => sum + (Number(t.quantity) * Number(t.unit_price)),
+            0
+        );
+
+        if (total > 0) {
+            await supabase
+                .from('jobs')
+                .update({ final_invoice_amount: total } as any)
+                .eq('id', jobId);
+        }
+    }
+
+    if (newStatus === 'paid') {
+        await supabase
+            .from('jobs')
+            .update({ paid_at: new Date().toISOString() } as any)
+            .eq('id', jobId);
+
+        if ((job as any).final_invoice_amount && Number((job as any).final_invoice_amount) > 0) {
+            const { recordJobRevenue } = await import('@/app/actions/finance-bridge-actions');
+            await recordJobRevenue(jobId, Number((job as any).final_invoice_amount));
+        }
     }
 
     revalidatePath(`/ops/jobs`);
+    revalidatePath(`/ops/finance`);
     revalidatePath(`/portal/${jobId}`);
 
     return { success: true };

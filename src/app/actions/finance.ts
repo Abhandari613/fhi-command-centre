@@ -73,7 +73,7 @@ export async function getUncategorizedTransactions() {
 
     if (!data) return [];
 
-    // Work Order Matching Logic (The "Bridge")
+    // Matching Logic: suggest both work orders and completed jobs
     const deposits = data.filter(t => t.amount > 0);
     if (deposits.length > 0) {
         // Fetch potential Work Orders
@@ -82,15 +82,27 @@ export async function getUncategorizedTransactions() {
             .in('status', ['Scheduled', 'In Progress'])
             .limit(5);
 
-        if (wos && wos.length > 0) {
-            // Check for matches
-            // We just suggest recent active Work Orders 
-            data.forEach(txn => {
-                if (txn.amount > 0) {
-                    (txn as any).suggested_work_order = wos[0]; // Simplistic AI suggestion to top active WO
+        // Fetch invoiced/completed jobs
+        const { data: jobs } = await supabase
+            .from('jobs')
+            .select('id, job_number, property_address, status, final_invoice_amount')
+            .in('status', ['invoiced', 'completed'])
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        data.forEach(txn => {
+            if (txn.amount > 0) {
+                // Try to match by amount to a job's invoice
+                const matchedJob = (jobs || []).find(
+                    (j: any) => j.final_invoice_amount && Math.abs(Number(j.final_invoice_amount) - Number(txn.amount)) < 0.01
+                );
+                if (matchedJob) {
+                    (txn as any).suggested_job = matchedJob;
+                } else if (wos && wos.length > 0) {
+                    (txn as any).suggested_work_order = wos[0];
                 }
-            });
-        }
+            }
+        });
     }
 
     return data;
@@ -99,13 +111,12 @@ export async function getUncategorizedTransactions() {
 export async function matchTransactionToWorkOrder(txnId: string, workOrderId: string) {
     const supabase = await createClient();
 
-    // 1. Link Transaction
     const { error: txError } = await supabase
         .from('finance_transactions')
         .update({
             work_order_id: workOrderId,
             status: 'CONFIRMED',
-            category_id: (await getSalesCategoryId(supabase)), // Auto-categorize as Sales
+            category_id: (await getSalesCategoryId(supabase)),
             confidence_score: 1.0,
             rationale: 'Matched to Work Order via generic matching',
             updated_at: new Date().toISOString()
@@ -116,6 +127,28 @@ export async function matchTransactionToWorkOrder(txnId: string, workOrderId: st
 
     revalidatePath('/ops/finance');
     revalidatePath(`/ops/work-orders/${workOrderId}`);
+    return { success: true };
+}
+
+export async function matchTransactionToJob(txnId: string, jobId: string) {
+    const supabase = await createClient();
+
+    const { error: txError } = await supabase
+        .from('finance_transactions')
+        .update({
+            job_id: jobId,
+            status: 'CONFIRMED',
+            category_id: (await getSalesCategoryId(supabase)),
+            confidence_score: 1.0,
+            rationale: 'Matched to Job via finance bridge',
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', txnId);
+
+    if (txError) throw new Error(txError.message);
+
+    revalidatePath('/ops/finance');
+    revalidatePath(`/ops/jobs/${jobId}`);
     return { success: true };
 }
 

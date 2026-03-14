@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { JobStatus, JOB_STATUS_FLOW } from "@/lib/fsm/job-state";
 
 export type DashboardJob = {
   id: string;
@@ -16,12 +17,15 @@ export type DashboardJob = {
   quoted_total?: number;
 };
 
-const STATUS_ORDER = ["incoming", "quoted", "in_progress", "invoiced", "paid"];
+const STATUS_ORDER = ["incoming", "draft", "quoted", "sent", "approved", "active", "scheduled", "in_progress", "completed", "invoiced", "paid"];
 
+// Dashboard advance follows the primary happy path
 const NEXT_STATUS: Record<string, string> = {
-  incoming: "quoted",
+  incoming: "draft",
+  draft: "quoted",
   quoted: "in_progress",
-  in_progress: "invoiced",
+  in_progress: "completed",
+  completed: "invoiced",
   invoiced: "paid",
 };
 

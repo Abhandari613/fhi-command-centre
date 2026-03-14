@@ -2,22 +2,22 @@ import { NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
 import { AIAgent } from "@/lib/clients/fhi/services/ai-agent";
 
+// Detect if email references an existing job number (e.g. FHI-2026-001)
+const JOB_NUMBER_PATTERN = /FHI-\d{4}-\d{3}/i;
+const ADD_TO_EXISTING_KEYWORDS = /\b(add to|existing|also need|in addition|additional|append|update)\b/i;
+
 export async function POST(req: Request) {
     try {
-        // Parse inbound parse from Resend / SendGrid (multipart/form-data or JSON)
-        // Usually, Resend webhooks are JSON payloads. SendGrid is multipart.
-        // Let's assume a generic JSON payload for the mock/local testing.
         const body = await req.json();
 
-        // Extract sender and content based on common webhook formats
         const senderEmail = body.from?.address || body.from || body.sender || "";
+        const emailSubject = body.subject || "";
         const emailContent = body.text || body.html || body.content || "";
 
-        if (!emailContent) {
+        if (!emailContent && !emailSubject) {
             return NextResponse.json({ error: "No email content" }, { status: 400 });
         }
 
-        // Initialize Supabase Admin to bypass RLS since this is a public webhook
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -37,7 +37,6 @@ export async function POST(req: Request) {
 
         let orgId = profile?.organization_id;
 
-        // If not found, use a fallback existing organization for beta/testing
         if (!orgId) {
             const { data: fallbackOrg } = await supabaseAdmin
                 .from('organizations')
@@ -51,16 +50,59 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "No organization mapped" }, { status: 400 });
         }
 
-        const agent = new AIAgent();
-        const extractedData = await agent.parseWorkOrderDraft(emailContent);
+        const fullText = `${emailSubject}\n\n${emailContent}`;
 
-        // Insert into drafts bypassing RLS
+        // Check if this references an existing job
+        const jobNumberMatch = fullText.match(JOB_NUMBER_PATTERN);
+        const hasAddKeywords = ADD_TO_EXISTING_KEYWORDS.test(fullText);
+
+        if (jobNumberMatch && hasAddKeywords) {
+            // Attempt to find the existing job
+            const jobNumber = jobNumberMatch[0].toUpperCase();
+            const { data: existingJob } = await supabaseAdmin
+                .from('jobs')
+                .select('id')
+                .eq('job_number', jobNumber)
+                .single();
+
+            if (existingJob) {
+                // Store the email content as an attachment on the existing job
+                await supabaseAdmin.from('job_attachments').insert({
+                    job_id: existingJob.id,
+                    file_url: '',
+                    file_type: 'email',
+                });
+
+                // Log event
+                await supabaseAdmin.from('job_events').insert({
+                    job_id: existingJob.id,
+                    event_type: 'photo_addition_email',
+                    metadata: {
+                        sender: senderEmail,
+                        subject: emailSubject,
+                        content_preview: emailContent.slice(0, 500),
+                    },
+                });
+
+                return NextResponse.json({
+                    success: true,
+                    action: 'added_to_existing',
+                    jobId: existingJob.id,
+                    jobNumber,
+                });
+            }
+        }
+
+        // Default: create a new work order draft
+        const agent = new AIAgent();
+        const extractedData = await agent.parseWorkOrderDraft(fullText);
+
         const { data: insertData, error: insertError } = await supabaseAdmin
             .from('work_order_drafts')
             .insert({
                 organization_id: orgId,
                 source: 'email',
-                raw_content: emailContent,
+                raw_content: fullText,
                 extracted_data: extractedData,
                 status: 'needs_review'
             })
@@ -72,7 +114,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Failed to save draft" }, { status: 500 });
         }
 
-        return NextResponse.json({ success: true, draft: insertData });
+        return NextResponse.json({ success: true, action: 'new_draft', draft: insertData });
 
     } catch (error: any) {
         console.error("Email Webhook Error:", error);
