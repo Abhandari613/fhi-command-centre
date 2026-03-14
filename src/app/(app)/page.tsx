@@ -1,120 +1,198 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { AnimatedButton } from "@/components/ui/AnimatedButton";
+import { TickerStrip } from "@/components/finance/TickerStrip";
+import { JobFunnel } from "@/components/finance/JobFunnel";
+import { AgingBuckets } from "@/components/finance/AgingBuckets";
+import { ProfitabilityTable } from "@/components/finance/ProfitabilityTable";
 import {
-  Mic,
-  Camera,
-  List,
+  getAgingSummary,
+  getAgedReceivables,
+  type AgingSummary,
+  type AgedReceivable,
+} from "@/app/actions/receivables-actions";
+import { getDashboardJobs, type DashboardJob } from "@/app/actions/dashboard-jobs-actions";
+import { getCompletedJobsFinanceSummary } from "@/app/actions/finance-bridge-actions";
+import {
+  AlertTriangle,
+  ArrowRight,
   Calendar,
   Clock,
-  MapPin,
-  ArrowRight,
-  Zap,
-  TrendingUp,
-  User,
-  Hammer,
-  AlertTriangle,
   DollarSign,
+  Hammer,
+  Camera,
+  TrendingUp,
+  Activity,
+  BarChart3,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { getAgingSummary } from "@/app/actions/receivables-actions";
+import { motion, AnimatePresence } from "framer-motion";
 
 const fmt = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
+  maximumFractionDigits: 0,
+});
+const fmtFull = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
 });
 
-export default function Dashboard() {
-  const supabase = createClient();
-  const [metrics, setMetrics] = useState({
-    activeWorkOrders: 0,
-    drafts: 0,
-    taskRevenue: 0,
-    outstanding: 0,
-    overdueCount: 0,
-  });
+// --- Types ---
+type JobProfit = {
+  job_id: string;
+  job_number: string;
+  property_address: string | null;
+  status: string;
+  revenue: number | null;
+  total_payouts: number;
+  gross_profit: number;
+  margin_pct: number;
+};
 
-  const [activeOrders, setActiveOrders] = useState<any[]>([]);
+export default function BloombergDashboard() {
   const [loading, setLoading] = useState(true);
 
+  // Data buckets
+  const [jobs, setJobs] = useState<DashboardJob[]>([]);
+  const [agingSummary, setAgingSummary] = useState<AgingSummary | null>(null);
+  const [receivables, setReceivables] = useState<AgedReceivable[]>([]);
+  const [profitJobs, setProfitJobs] = useState<JobProfit[]>([]);
+
+  // Derived metrics
+  const [metrics, setMetrics] = useState({
+    activeJobs: 0,
+    pipelineValue: 0,
+    totalRevenue: 0,
+    avgMargin: 0,
+    outstanding: 0,
+    overdueCount: 0,
+    paidThisMonth: 0,
+    totalJobs: 0,
+  });
+
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+
   const currentDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
+    weekday: "short",
+    month: "short",
     day: "numeric",
+  });
+  const currentTime = new Date().toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: wos } = (await (supabase.from as any)("work_orders").select(
-        "status",
-      )) as { data: { status: string | null }[] | null };
-      const { data: tasks } = (await (supabase.from as any)(
-        "work_order_tasks",
-      ).select("status, estimated_cost")) as {
-        data: { status: string; estimated_cost: number }[] | null;
-      };
-
-      const activeCount =
-        wos?.filter((j) =>
-          ["Scheduled", "In Progress"].includes(j.status || ""),
-        ).length || 0;
-      const draftCount = wos?.filter((j) => j.status === "Draft").length || 0;
-
-      const taskRevenue =
-        tasks?.reduce((sum, t) => {
-          if (t.status !== "Completed") {
-            return sum + (t.estimated_cost || 0);
-          }
-          return sum;
-        }, 0) || 0;
-
-      // Fetch aging summary for outstanding
-      let outstanding = 0;
-      let overdueCount = 0;
+    const fetchAll = async () => {
       try {
-        const aging = await getAgingSummary();
-        outstanding = aging.grand_total;
-        overdueCount =
-          aging["31-60"].count + aging["61-90"].count + aging["90+"].count;
-      } catch {}
+        const [jobsData, agingData, receivablesData, profitData] =
+          await Promise.all([
+            getDashboardJobs(),
+            getAgingSummary(),
+            getAgedReceivables(),
+            getCompletedJobsFinanceSummary(),
+          ]);
 
-      setMetrics({
-        activeWorkOrders: activeCount,
-        drafts: draftCount,
-        taskRevenue,
-        outstanding,
-        overdueCount,
-      });
+        setJobs(jobsData);
+        setAgingSummary(agingData);
+        setReceivables(receivablesData);
+        setProfitJobs(profitData as JobProfit[]);
 
-      const { data: woData } = await (supabase.from as any)("work_orders")
-        .select("*, clients(name)")
-        .in("status", ["Scheduled", "In Progress", "Draft"])
-        .order("created_at", { ascending: false })
-        .limit(4);
+        // Status counts for funnel
+        const counts: Record<string, number> = {};
+        for (const j of jobsData) {
+          counts[j.status] = (counts[j.status] || 0) + 1;
+        }
+        setStatusCounts(counts);
 
-      setActiveOrders(woData || []);
-      setLoading(false);
+        // Pipeline value = sum of quoted_total for non-paid jobs
+        const pipeline = jobsData
+          .filter((j) => !["paid", "completed"].includes(j.status))
+          .reduce((s, j) => s + (j.quoted_total || 0), 0);
+
+        // Active = scheduled + in_progress
+        const active = jobsData.filter((j) =>
+          ["scheduled", "in_progress"].includes(j.status)
+        ).length;
+
+        // Revenue & margin from profit summary
+        const totalRev = (profitData as JobProfit[]).reduce(
+          (s, j) => s + (j.revenue || 0),
+          0
+        );
+        const margins = (profitData as JobProfit[]).filter(
+          (j) => j.margin_pct > 0
+        );
+        const avgMargin =
+          margins.length > 0
+            ? margins.reduce((s, j) => s + j.margin_pct, 0) / margins.length
+            : 0;
+
+        // Paid this month
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const paidThisMonth = (profitData as JobProfit[])
+          .filter((j) => j.status === "paid")
+          .reduce((s, j) => s + (j.revenue || 0), 0);
+
+        // Overdue
+        const overdueCount =
+          agingData["31-60"].count +
+          agingData["61-90"].count +
+          agingData["90+"].count;
+
+        setMetrics({
+          activeJobs: active,
+          pipelineValue: pipeline,
+          totalRevenue: totalRev,
+          avgMargin,
+          outstanding: agingData.grand_total,
+          overdueCount,
+          paidThisMonth,
+          totalJobs: jobsData.length,
+        });
+      } catch (e) {
+        console.error("Dashboard fetch failed:", e);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    fetchData();
-  }, [supabase]);
+    fetchAll();
+  }, []);
+
+  // --- Attention items: stalled or overdue ---
+  const attentionJobs = jobs
+    .filter((j) => {
+      if (["incoming", "draft"].includes(j.status)) {
+        const age =
+          (Date.now() - new Date(j.created_at).getTime()) /
+          (1000 * 60 * 60 * 24);
+        return age > 3;
+      }
+      return false;
+    })
+    .slice(0, 3);
 
   const container = {
     hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.08 },
-    },
+    show: { opacity: 1, transition: { staggerChildren: 0.06 } },
   };
-
   const item = {
-    hidden: { opacity: 0, y: 12 },
+    hidden: { opacity: 0, y: 10 },
     show: { opacity: 1, y: 0, transition: { ease: "easeOut" as const } },
   };
+
+  // Skeleton loader
+  const Skeleton = ({ className = "" }: { className?: string }) => (
+    <div
+      className={`bg-white/[0.03] rounded animate-pulse border border-white/[0.03] ${className}`}
+    />
+  );
 
   return (
     <div className="relative min-h-screen pb-24 overflow-hidden">
@@ -122,266 +200,493 @@ export default function Dashboard() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="flex flex-col gap-6 py-2"
+        className="flex flex-col gap-4 py-2"
       >
-        {/* Header */}
-        <motion.header variants={item} className="space-y-1">
+        {/* ── HEADER ── */}
+        <motion.header variants={item} className="space-y-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-white">
-                Command Centre
+              <h1 className="text-2xl font-black tracking-tight text-white">
+                FHI Terminal
               </h1>
-              <p className="text-primary/70 font-semibold tracking-[0.15em] text-[10px] uppercase mt-0.5">
-                {currentDate}
+              <p className="text-[10px] font-mono text-white/30 tracking-wider">
+                {currentDate} &middot; {currentTime}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-b from-primary to-[#e05e00] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(255,107,0,0.4)]">
-              <span className="font-black text-white text-sm">F</span>
+            <div className="flex items-center gap-2">
+              {metrics.overdueCount > 0 && !loading && (
+                <Link href="/ops/finance/receivables">
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-red-500/10 border border-red-500/20 animate-pulse">
+                    <AlertTriangle className="w-3 h-3 text-red-400" />
+                    <span className="text-[10px] font-mono font-bold text-red-400">
+                      {metrics.overdueCount} OVERDUE
+                    </span>
+                  </div>
+                </Link>
+              )}
+              <div className="w-8 h-8 rounded bg-gradient-to-b from-primary to-[#e05e00] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(255,107,0,0.4)]">
+                <span className="font-black text-white text-xs">F</span>
+              </div>
             </div>
           </div>
+
+          {/* Ticker Strip */}
+          {loading ? (
+            <Skeleton className="h-6 w-full" />
+          ) : (
+            <TickerStrip
+              items={[
+                {
+                  label: "Active",
+                  value: String(metrics.activeJobs),
+                  color: "text-primary",
+                },
+                {
+                  label: "Pipeline",
+                  value: fmt.format(metrics.pipelineValue),
+                  color: "text-cyan-400",
+                },
+                {
+                  label: "Outstanding",
+                  value: fmt.format(metrics.outstanding),
+                  color:
+                    metrics.overdueCount > 0
+                      ? "text-red-400"
+                      : "text-amber-400",
+                  pulse: metrics.overdueCount > 0,
+                },
+                {
+                  label: "Revenue",
+                  value: fmt.format(metrics.totalRevenue),
+                  color: "text-emerald-400",
+                },
+                {
+                  label: "Margin",
+                  value: `${metrics.avgMargin.toFixed(0)}%`,
+                  color:
+                    metrics.avgMargin >= 20
+                      ? "text-emerald-400"
+                      : "text-amber-400",
+                },
+              ]}
+            />
+          )}
         </motion.header>
 
-        {/* Quick Stats Row */}
-        <motion.section variants={item} className="grid grid-cols-3 gap-2">
-          <GlassCard
-            intensity="panel"
-            className="p-4 flex flex-col gap-1.5 items-center text-center group"
-          >
-            <Zap className="w-4 h-4 text-primary mb-0.5" strokeWidth={2.5} />
-            <span className="text-2xl font-black tabular-nums">
-              {loading ? "-" : metrics.activeWorkOrders}
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.15em] text-gray-500 font-semibold">
-              Active
-            </span>
-          </GlassCard>
+        {/* ── KPI CARDS ── 4 dense metric cards */}
+        <motion.section variants={item} className="grid grid-cols-4 gap-2">
+          {loading ? (
+            <>
+              <Skeleton className="h-[72px]" />
+              <Skeleton className="h-[72px]" />
+              <Skeleton className="h-[72px]" />
+              <Skeleton className="h-[72px]" />
+            </>
+          ) : (
+            <>
+              <GlassCard
+                intensity="panel"
+                className="p-3 flex flex-col gap-1 items-center text-center"
+              >
+                <span className="text-xl font-black tabular-nums font-mono text-primary">
+                  {metrics.activeJobs}
+                </span>
+                <span className="text-[8px] uppercase tracking-[0.12em] text-white/30 font-bold">
+                  Active
+                </span>
+              </GlassCard>
 
-          <GlassCard
-            intensity="panel"
-            className="p-4 flex flex-col gap-1.5 items-center text-center group"
-          >
-            <DollarSign
-              className="w-4 h-4 text-primary mb-0.5"
-              strokeWidth={2.5}
-            />
-            <span className="text-xl font-black tabular-nums text-primary">
-              {loading ? "-" : fmt.format(metrics.outstanding)}
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.15em] text-gray-500 font-semibold">
-              Outstanding
-            </span>
-          </GlassCard>
+              <GlassCard
+                intensity="panel"
+                className="p-3 flex flex-col gap-1 items-center text-center"
+              >
+                <span className="text-xl font-black tabular-nums font-mono text-emerald-400">
+                  {fmt.format(metrics.paidThisMonth)}
+                </span>
+                <span className="text-[8px] uppercase tracking-[0.12em] text-white/30 font-bold">
+                  Collected
+                </span>
+              </GlassCard>
 
-          <GlassCard
-            intensity="panel"
-            className="p-4 flex flex-col gap-1.5 items-center text-center group"
-          >
-            <TrendingUp
-              className="w-4 h-4 text-emerald-500 mb-0.5"
-              strokeWidth={2.5}
-            />
-            <span className="text-xl font-black tabular-nums text-emerald-400">
-              {loading ? "-" : `$${(metrics.taskRevenue / 1000).toFixed(1)}k`}
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.15em] text-gray-500 font-semibold">
-              Pipeline
-            </span>
-          </GlassCard>
+              <GlassCard
+                intensity="panel"
+                className="p-3 flex flex-col gap-1 items-center text-center"
+              >
+                <span
+                  className={`text-xl font-black tabular-nums font-mono ${
+                    metrics.overdueCount > 0
+                      ? "text-red-400"
+                      : "text-amber-400"
+                  }`}
+                >
+                  {fmt.format(metrics.outstanding)}
+                </span>
+                <span className="text-[8px] uppercase tracking-[0.12em] text-white/30 font-bold">
+                  Owed
+                </span>
+              </GlassCard>
+
+              <GlassCard
+                intensity="panel"
+                className="p-3 flex flex-col gap-1 items-center text-center"
+              >
+                <span
+                  className={`text-xl font-black tabular-nums font-mono ${
+                    metrics.avgMargin >= 20
+                      ? "text-emerald-400"
+                      : metrics.avgMargin >= 10
+                        ? "text-amber-400"
+                        : "text-red-400"
+                  }`}
+                >
+                  {metrics.avgMargin.toFixed(0)}%
+                </span>
+                <span className="text-[8px] uppercase tracking-[0.12em] text-white/30 font-bold">
+                  Margin
+                </span>
+              </GlassCard>
+            </>
+          )}
         </motion.section>
 
-        {/* Overdue Invoices Alert */}
-        {!loading && metrics.overdueCount > 0 && (
-          <motion.section variants={item}>
-            <Link href="/ops/finance/receivables">
-              <GlassCard
-                intensity="bright"
-                className="p-4 ember-border-l flex items-center gap-3"
+        {/* ── TWO-COLUMN LAYOUT ── Ops left, Finance right */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* LEFT — Operations Pulse */}
+          <motion.section variants={item} className="space-y-4">
+            {/* Job Pipeline Funnel */}
+            <GlassCard intensity="panel" className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-white flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5 text-primary" />
+                  <span className="uppercase tracking-wider">Pipeline</span>
+                  <span className="text-white/20 font-mono text-[10px]">
+                    {metrics.totalJobs}
+                  </span>
+                </h2>
+                <Link
+                  href="/dashboard"
+                  className="text-[10px] text-white/30 hover:text-primary transition-colors font-mono"
+                >
+                  KANBAN <ChevronRight className="w-3 h-3 inline" />
+                </Link>
+              </div>
+              {loading ? (
+                <div className="space-y-1">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <JobFunnel counts={statusCounts} />
+              )}
+            </GlassCard>
+
+            {/* Active Jobs List */}
+            <GlassCard intensity="panel" className="p-4 space-y-3">
+              <h2 className="text-xs font-bold text-white flex items-center gap-2">
+                <Hammer className="w-3.5 h-3.5 text-primary" />
+                <span className="uppercase tracking-wider">In the Field</span>
+              </h2>
+              {loading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {jobs
+                    .filter((j) =>
+                      ["scheduled", "in_progress"].includes(j.status)
+                    )
+                    .slice(0, 4)
+                    .map((job, i) => (
+                      <Link key={job.id} href={`/ops/jobs/${job.id}`}>
+                        <motion.div
+                          initial={{ opacity: 0, x: -6 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="flex items-center gap-3 p-2 rounded hover:bg-white/[0.03] transition-colors group"
+                        >
+                          <div
+                            className={`w-1.5 h-8 rounded-full shrink-0 ${
+                              job.status === "in_progress"
+                                ? "bg-amber-500"
+                                : "bg-blue-500"
+                            }`}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-white/80 truncate group-hover:text-primary transition-colors">
+                              {job.property_address ||
+                                job.address ||
+                                job.title}
+                            </p>
+                            <p className="text-[10px] text-white/30 font-mono">
+                              {job.job_number} &middot;{" "}
+                              {job.status === "in_progress"
+                                ? "ACTIVE"
+                                : "SCHEDULED"}
+                            </p>
+                          </div>
+                          {(job.quoted_total ?? 0) > 0 && (
+                            <span className="text-[10px] font-mono font-bold text-white/40 tabular-nums">
+                              {fmt.format(job.quoted_total ?? 0)}
+                            </span>
+                          )}
+                        </motion.div>
+                      </Link>
+                    ))}
+                  {jobs.filter((j) =>
+                    ["scheduled", "in_progress"].includes(j.status)
+                  ).length === 0 && (
+                    <p className="text-xs text-white/20 text-center py-3 font-mono">
+                      No active jobs
+                    </p>
+                  )}
+                </div>
+              )}
+            </GlassCard>
+
+            {/* Attention Items */}
+            <AnimatePresence>
+              {attentionJobs.length > 0 && !loading && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  <GlassCard
+                    intensity="bright"
+                    className="p-4 ember-border-l space-y-2"
+                  >
+                    <h2 className="text-xs font-bold text-amber-400 flex items-center gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span className="uppercase tracking-wider">
+                        Needs Attention
+                      </span>
+                    </h2>
+                    {attentionJobs.map((job) => {
+                      const age = Math.floor(
+                        (Date.now() - new Date(job.created_at).getTime()) /
+                          (1000 * 60 * 60 * 24)
+                      );
+                      return (
+                        <Link key={job.id} href={`/ops/jobs/${job.id}`}>
+                          <div className="flex items-center justify-between p-2 rounded hover:bg-white/[0.03] transition-colors">
+                            <div>
+                              <p className="text-xs text-white/70">
+                                {job.title || job.property_address}
+                              </p>
+                              <p className="text-[10px] text-white/30 font-mono">
+                                {job.status.toUpperCase()} &middot; {age}d old
+                              </p>
+                            </div>
+                            <ArrowRight className="w-3 h-3 text-white/20" />
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </GlassCard>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.section>
+
+          {/* RIGHT — Financial Health */}
+          <motion.section variants={item} className="space-y-4">
+            {/* Aged Receivables */}
+            <GlassCard intensity="panel" className="p-4">
+              {loading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-40" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Skeleton className="h-20" />
+                    <Skeleton className="h-20" />
+                    <Skeleton className="h-20" />
+                    <Skeleton className="h-20" />
+                  </div>
+                </div>
+              ) : agingSummary ? (
+                <AgingBuckets
+                  summary={agingSummary}
+                  receivables={receivables}
+                  compact
+                />
+              ) : (
+                <p className="text-xs text-white/20 text-center py-4 font-mono">
+                  No receivables data
+                </p>
+              )}
+            </GlassCard>
+
+            {/* Job Profitability */}
+            <GlassCard intensity="panel" className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-white flex items-center gap-2">
+                  <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="uppercase tracking-wider">
+                    Job Profitability
+                  </span>
+                </h2>
+                <Link
+                  href="/ops/finance"
+                  className="text-[10px] text-white/30 hover:text-primary transition-colors font-mono"
+                >
+                  CFO HUB <ChevronRight className="w-3 h-3 inline" />
+                </Link>
+              </div>
+              {loading ? (
+                <div className="space-y-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-7 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <ProfitabilityTable jobs={profitJobs} limit={5} />
+              )}
+            </GlassCard>
+
+            {/* Cash Position Summary */}
+            <GlassCard intensity="panel" className="p-4 space-y-3">
+              <h2 className="text-xs font-bold text-white flex items-center gap-2">
+                <DollarSign className="w-3.5 h-3.5 text-primary" />
+                <span className="uppercase tracking-wider">Cash Position</span>
+              </h2>
+              {loading ? (
+                <Skeleton className="h-16 w-full" />
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-white/30 uppercase tracking-wider font-mono">
+                      Total Revenue
+                    </span>
+                    <span className="text-sm font-mono font-black tabular-nums text-emerald-400">
+                      {fmt.format(metrics.totalRevenue)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-white/30 uppercase tracking-wider font-mono">
+                      Outstanding
+                    </span>
+                    <span className="text-sm font-mono font-black tabular-nums text-amber-400">
+                      {fmt.format(metrics.outstanding)}
+                    </span>
+                  </div>
+                  <div className="h-px bg-white/5" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-white/30 uppercase tracking-wider font-mono">
+                      Collected
+                    </span>
+                    <span className="text-sm font-mono font-black tabular-nums text-white">
+                      {fmt.format(metrics.totalRevenue - metrics.outstanding)}
+                    </span>
+                  </div>
+                  {/* Visual bar */}
+                  <div className="h-2 rounded-full bg-white/[0.03] overflow-hidden flex">
+                    {metrics.totalRevenue > 0 && (
+                      <>
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{
+                            width: `${
+                              ((metrics.totalRevenue - metrics.outstanding) /
+                                metrics.totalRevenue) *
+                              100
+                            }%`,
+                          }}
+                          transition={{ duration: 0.8, ease: "easeOut" }}
+                          className="h-full bg-emerald-500 rounded-l-full"
+                        />
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{
+                            width: `${
+                              (metrics.outstanding / metrics.totalRevenue) * 100
+                            }%`,
+                          }}
+                          transition={{
+                            duration: 0.8,
+                            ease: "easeOut",
+                            delay: 0.1,
+                          }}
+                          className="h-full bg-amber-500/50"
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </GlassCard>
+          </motion.section>
+        </div>
+
+        {/* ── QUICK ACTIONS ── */}
+        <motion.section variants={item} className="space-y-3">
+          <h2 className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">
+            Quick Actions
+          </h2>
+          <div className="grid grid-cols-4 gap-2">
+            <Link href="/ops/subs">
+              <AnimatedButton
+                variant="secondary"
+                className="w-full h-16 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15"
               >
-                <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center border border-red-500/20">
-                  <AlertTriangle
-                    className="w-5 h-5 text-red-400"
+                <div className="w-7 h-7 rounded-sm bg-primary/15 flex items-center justify-center text-primary border border-primary/15">
+                  <Hammer className="w-3.5 h-3.5" strokeWidth={2.5} />
+                </div>
+                <span className="font-bold text-[9px] tracking-wide uppercase">
+                  Dispatch
+                </span>
+              </AnimatedButton>
+            </Link>
+
+            <Link href="/ops/receipts">
+              <AnimatedButton
+                variant="secondary"
+                className="w-full h-16 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15"
+              >
+                <div className="w-7 h-7 rounded-sm bg-white/[0.04] flex items-center justify-center border border-white/[0.06]">
+                  <Camera
+                    className="w-3.5 h-3.5 text-gray-400"
                     strokeWidth={2.5}
                   />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-red-400">
-                    {metrics.overdueCount} Overdue Invoice
-                    {metrics.overdueCount !== 1 ? "s" : ""}
-                  </p>
-                  <p className="text-[10px] text-white/40">
-                    31+ days outstanding — tap to view
-                  </p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-white/20" />
-              </GlassCard>
-            </Link>
-          </motion.section>
-        )}
-
-        {/* Work Orders Pipeline */}
-        <motion.section variants={item} className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold flex items-center gap-2 text-white">
-              <div className="w-1 h-4 bg-primary rounded-full" />
-              Work Orders
-            </h2>
-            <Link
-              href="/ops/jobs"
-              className="text-[11px] text-gray-500 font-medium hover:text-primary transition-colors tracking-wide uppercase"
-            >
-              View all
-            </Link>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {loading ? (
-              <div className="h-20 bg-white/[0.02] rounded-lg animate-pulse border border-white/[0.03]" />
-            ) : activeOrders.length === 0 ? (
-              <GlassCard className="p-8 text-center flex flex-col items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white/[0.03] flex items-center justify-center border border-white/[0.04]">
-                  <Calendar className="w-5 h-5 text-gray-600" />
-                </div>
-                <p className="text-sm text-gray-500">No active work orders</p>
-                <AnimatedButton size="sm" variant="secondary">
-                  Create One
-                </AnimatedButton>
-              </GlassCard>
-            ) : (
-              activeOrders.map((wo, i) => (
-                <GlassCard
-                  key={wo.id}
-                  intensity="bright"
-                  className="p-4 ember-border-l relative overflow-hidden group"
-                  initial={{ x: -12, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: i * 0.08, ease: [0.4, 0, 0.2, 1] }}
-                >
-                  <div className="flex justify-between items-start mb-2 relative z-10">
-                    <div>
-                      <h3 className="font-bold text-sm text-white group-hover:text-primary transition-colors">
-                        {wo.clients?.name || "Unknown Client"}
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {wo.property_address_or_unit}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase tracking-wider border ${
-                        wo.status === "Draft"
-                          ? "bg-white/[0.03] text-gray-500 border-white/[0.06]"
-                          : wo.status === "Scheduled"
-                            ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                            : "bg-primary/10 text-primary border-primary/20"
-                      }`}
-                    >
-                      {wo.status}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-xs text-gray-500 relative z-10">
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-3 h-3 text-gray-600" />
-                      <span>
-                        {wo.due_at
-                          ? new Date(wo.due_at).toLocaleDateString()
-                          : "No Due Date"}
-                      </span>
-                    </div>
-                  </div>
-                </GlassCard>
-              ))
-            )}
-          </div>
-        </motion.section>
-
-        {/* Quick Actions Grid */}
-        <motion.section variants={item} className="space-y-3">
-          <h2 className="text-base font-bold flex items-center gap-2 text-white">
-            <div className="w-1 h-4 bg-primary rounded-full" />
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-2 gap-2">
-            {/* Dispatch Subs — hero button, ember-lit */}
-            <Link href="/ops/subs" className="col-span-1">
-              <AnimatedButton className="w-full h-28 flex-col gap-2.5 rounded-sm bg-gradient-to-br from-primary/20 via-primary/8 to-transparent border-primary/25 hover:border-primary/50 relative overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-primary/60 via-primary/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 w-px h-6 bg-gradient-to-t from-primary/40 to-transparent" />
-                <div className="w-10 h-10 rounded-sm bg-primary/20 flex items-center justify-center text-primary shadow-[0_0_16px_-2px_rgba(255,107,0,0.4)] border border-primary/20">
-                  <Hammer className="w-5 h-5" strokeWidth={2.5} />
-                </div>
-                <span className="font-black text-sm tracking-wide uppercase">
-                  Dispatch Subs
+                <span className="font-bold text-[9px] tracking-wide uppercase">
+                  Receipt
                 </span>
               </AnimatedButton>
             </Link>
 
-            {/* Snap Receipt — steel with chrome edge */}
-            <Link href="/ops/receipts" className="col-span-1">
+            <Link href="/ops/schedule">
               <AnimatedButton
                 variant="secondary"
-                className="w-full h-28 flex-col gap-2.5 rounded-sm relative overflow-hidden hover:border-primary/15"
+                className="w-full h-16 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15"
               >
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-white/[0.08] via-white/[0.04] to-transparent" />
-                <div className="w-10 h-10 rounded-sm bg-white/[0.05] flex items-center justify-center border border-white/[0.08] shadow-[0_2px_8px_-2px_rgba(0,0,0,0.6)]">
-                  <Camera className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+                <div className="w-7 h-7 rounded-sm bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/15">
+                  <Calendar
+                    className="w-3.5 h-3.5"
+                    strokeWidth={2.5}
+                  />
                 </div>
-                <span className="font-black text-sm tracking-wide uppercase">
-                  Snap Receipt
+                <span className="font-bold text-[9px] tracking-wide uppercase">
+                  Schedule
                 </span>
               </AnimatedButton>
             </Link>
 
-            {/* B2B Clients — steel compact */}
-            <Link href="/ops/clients" className="col-span-1">
+            <Link href="/ops/finance">
               <AnimatedButton
                 variant="secondary"
-                className="w-full h-20 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15"
+                className="w-full h-16 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15"
               >
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-purple-500/20 via-transparent to-transparent" />
-                <div className="w-8 h-8 rounded-sm bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/15 shadow-[0_0_10px_-3px_rgba(168,85,247,0.2)]">
-                  <User className="w-4 h-4" strokeWidth={2.5} />
+                <div className="w-7 h-7 rounded-sm bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/15">
+                  <TrendingUp
+                    className="w-3.5 h-3.5"
+                    strokeWidth={2.5}
+                  />
                 </div>
-                <span className="font-bold text-xs tracking-wide uppercase">
-                  B2B Clients
+                <span className="font-bold text-[9px] tracking-wide uppercase">
+                  Finance
                 </span>
-              </AnimatedButton>
-            </Link>
-
-            {/* Work Orders — steel compact */}
-            <Link href="/ops/jobs" className="col-span-1">
-              <AnimatedButton
-                variant="secondary"
-                className="w-full h-20 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15"
-              >
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-emerald-500/20 via-transparent to-transparent" />
-                <div className="w-8 h-8 rounded-sm bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/15 shadow-[0_0_10px_-3px_rgba(16,185,129,0.2)]">
-                  <List className="w-4 h-4" strokeWidth={2.5} />
-                </div>
-                <span className="font-bold text-xs tracking-wide uppercase">
-                  Work Orders
-                </span>
-              </AnimatedButton>
-            </Link>
-
-            {/* Finance Hub — full-width steel bar with ember accent */}
-            <Link href="/ops/finance" className="col-span-2">
-              <AnimatedButton
-                variant="secondary"
-                className="w-full h-16 flex-row gap-3 rounded-sm relative overflow-hidden hover:border-primary/15"
-              >
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-amber-500/30 via-amber-500/10 to-transparent" />
-                <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-amber-500/30 via-transparent to-transparent" />
-                <div className="w-8 h-8 rounded-sm bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/15 shadow-[0_0_10px_-3px_rgba(245,158,11,0.2)]">
-                  <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="font-black text-sm tracking-wide uppercase">
-                    Finance Hub
-                  </span>
-                  <span className="text-[10px] text-gray-500 tracking-wider uppercase">
-                    Job Costing & Profitability
-                  </span>
-                </div>
               </AnimatedButton>
             </Link>
           </div>
