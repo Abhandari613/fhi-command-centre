@@ -33,18 +33,17 @@ export class AIAgent {
         });
     }
 
-    async transcribeAudio(filePath: string): Promise<string> {
-        // Upload the audio file to the Gemini File API
-        const uploadedFile = await this.ai.files.upload({
-            file: filePath,
-            config: { mimeType: "audio/webm" },
-        });
-
-        // Prompt Gemini to transcribe
+    async transcribeAudio(audioBuffer: Buffer): Promise<string> {
+        // Prompt Gemini to transcribe using inline data
         const response = await this.ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: [
-                uploadedFile,
+                {
+                    inlineData: {
+                        mimeType: "audio/webm",
+                        data: audioBuffer.toString("base64")
+                    }
+                },
                 { text: "Transcribe this audio file accurately. Do not add any commentary. Output only the exact words spoken." },
             ],
         });

@@ -45,5 +45,31 @@ next-env.d.ts
 
 supabase/.temp/
 
-.vercel
-.env*.local
+# build/lint/debug logs
+build_log*.txt
+build_out*.txt
+build_output*.txt
+lint_report*.txt
+lint_output*.txt
+lint_page.txt
+debug_data.json
+debug_output.txt
+debug_atul.json
+ts_errors.log
+ts_errors.txt
+error.json
+error.txt
+repair.txt
+
+# deployment logs
+vercel_deploy*.txt
+vercel_out.txt
+vercel_redeployment.txt
+vercel_final_deploy.txt
+vercel_deployments*.txt
+
+# utility/temp scripts
+add-env.js
+sync-env.js
+update-env.ps1
+test-genai.mjs
