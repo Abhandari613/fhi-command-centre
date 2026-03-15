@@ -159,12 +159,12 @@ export function WorkOrderList() {
                       </span>
                     </div>
                     <div className="text-xs italic opacity-70 border-l-2 border-white/20 pl-3 mt-1 line-clamp-2">
-                      "{draft.raw_content}"
+                      &ldquo;{draft.raw_content}&rdquo;
                     </div>
                   </div>
 
-                  <div className="absolute right-4 bottom-4 opacity-0 group-hover:opacity-100 transition-opacity text-primary">
-                    <span className="text-xs font-semibold flex items-center gap-1">
+                  <div className="flex justify-end pt-1">
+                    <span className="text-xs font-semibold flex items-center gap-1 text-primary group-hover:translate-x-1 transition-transform">
                       Review <ArrowRight className="w-4 h-4" />
                     </span>
                   </div>
