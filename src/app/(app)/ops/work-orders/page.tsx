@@ -11,7 +11,7 @@ export default function WorkOrdersPage() {
       <div className="p-6">
         <header className="flex justify-between items-end mb-6">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl font-black tracking-tight text-white">
               Work Orders
             </h1>
             <p className="text-sm opacity-70">

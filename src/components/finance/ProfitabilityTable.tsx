@@ -32,7 +32,10 @@ function marginColor(pct: number) {
   return "text-red-400";
 }
 
-export function ProfitabilityTable({ jobs, limit = 5 }: ProfitabilityTableProps) {
+export function ProfitabilityTable({
+  jobs,
+  limit = 5,
+}: ProfitabilityTableProps) {
   const display = jobs.slice(0, limit);
 
   return (
@@ -67,7 +70,7 @@ export function ProfitabilityTable({ jobs, limit = 5 }: ProfitabilityTableProps)
             </span>
             <span
               className={`w-14 text-right text-xs font-mono font-bold tabular-nums ${marginColor(
-                job.margin_pct
+                job.margin_pct,
               )}`}
             >
               {job.margin_pct > 0 ? `${job.margin_pct.toFixed(0)}%` : "—"}

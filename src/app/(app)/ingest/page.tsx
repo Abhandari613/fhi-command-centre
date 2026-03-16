@@ -67,8 +67,10 @@ export default function IngestPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-extrabold tracking-tight">New Job</h1>
-        <p className="text-sm opacity-70">
+        <h1 className="text-2xl font-black tracking-tight text-white">
+          New Job
+        </h1>
+        <p className="text-[10px] font-mono text-white/30 tracking-wider">
           Paste an email or add photos to start a job
         </p>
       </header>
@@ -89,7 +91,7 @@ export default function IngestPage() {
                   </p>
                   <Link
                     href={`/ops/jobs/${result.jobId}/scope`}
-                    className="text-sm text-blue-400 underline"
+                    className="text-sm text-primary hover:underline"
                   >
                     Add scope from photos &rarr;
                   </Link>

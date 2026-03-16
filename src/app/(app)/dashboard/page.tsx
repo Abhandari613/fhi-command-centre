@@ -148,8 +148,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <header className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Jobs</h1>
-          <p className="text-sm opacity-70">
+          <h1 className="text-2xl font-black tracking-tight text-white">
+            Jobs
+          </h1>
+          <p className="text-[10px] font-mono text-white/30 tracking-wider">
             {jobs.length} active job{jobs.length !== 1 ? "s" : ""}
           </p>
         </div>
@@ -157,7 +159,7 @@ export default function DashboardPage() {
           <NotificationBell />
           <Link
             href="/ingest"
-            className="bg-blue-600 hover:bg-blue-500 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg shadow-blue-600/25 transition-all active:scale-95"
+            className="bg-gradient-to-b from-primary to-[#e05e00] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-[0_4px_20px_-2px_rgba(255,107,0,0.5)] border border-primary/50 transition-all active:scale-95"
           >
             <Plus className="w-6 h-6" />
           </Link>
@@ -305,7 +307,7 @@ export default function DashboardPage() {
           <p className="text-lg font-semibold opacity-40">No jobs yet</p>
           <Link
             href="/ingest"
-            className="inline-block mt-4 bg-blue-600 text-white font-bold rounded-xl px-6 py-3 min-h-[48px]"
+            className="inline-block mt-4 bg-gradient-to-b from-primary to-[#e05e00] text-white font-bold rounded-xl px-6 py-3 min-h-[48px] shadow-[0_4px_20px_-2px_rgba(255,107,0,0.4)]"
           >
             Create your first job
           </Link>

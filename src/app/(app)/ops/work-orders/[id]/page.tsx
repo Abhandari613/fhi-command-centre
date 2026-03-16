@@ -298,7 +298,7 @@ export default function WorkOrderDetailsPage() {
             <AnimatedButton
               onClick={() => handleUpdateStatus("In Progress")}
               size="lg"
-              className="w-full shadow-[0_0_20px_rgba(59,130,246,0.3)] bg-gradient-to-r from-blue-500 to-blue-600 border-none"
+              className="w-full shadow-[0_4px_20px_-2px_rgba(255,107,0,0.4)] bg-gradient-to-b from-primary to-[#e05e00] border-none"
             >
               <Loader2 className="animate-spin w-5 h-5 mr-2" /> Start Work
             </AnimatedButton>

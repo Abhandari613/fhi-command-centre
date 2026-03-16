@@ -77,7 +77,7 @@ export function CFODashboardClient({
           className="flex items-center justify-between"
         >
           <div>
-            <h1 className="text-3xl font-black text-white tracking-tight">
+            <h1 className="text-2xl font-black tracking-tight text-white">
               CFO Dashboard
             </h1>
             <p className="text-white/50 text-sm">

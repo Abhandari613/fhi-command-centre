@@ -9,7 +9,7 @@ import {
   FileText,
   Plus,
   DollarSign,
-  FlaskConical,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,8 +23,8 @@ export function BottomNav() {
       { name: "Work Orders", href: "/ops/work-orders", icon: Briefcase },
       { name: "New Job", href: "/ingest", icon: Plus, isFab: true },
       { name: "Estimates", href: "/ops/quotes", icon: FileText },
+      { name: "Properties", href: "/ops/properties", icon: Building2 },
       { name: "Finance", href: "/ops/finance", icon: DollarSign },
-      { name: "Test", href: "/ops/test-bench", icon: FlaskConical },
     ];
 
   return (
@@ -38,7 +38,8 @@ export function BottomNav() {
             const isActive =
               item.href === "/"
                 ? pathname === "/"
-                : pathname === item.href || pathname?.startsWith(item.href + "/");
+                : pathname === item.href ||
+                  pathname?.startsWith(item.href + "/");
 
             if (item.isFab) {
               return (

@@ -18,6 +18,7 @@ import {
 } from "@/app/actions/draft-actions";
 import { toast } from "sonner";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { PropertyLocationPicker } from "@/components/properties/LocationPicker";
 import { cn } from "@/lib/utils";
 
 interface ExtractedData {
@@ -46,6 +47,11 @@ export function ReviewDraftModal({
   onClose: () => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
+  const [location, setLocation] = useState<{
+    propertyId?: string;
+    buildingId?: string;
+    unitId?: string;
+  }>({});
 
   if (!draft) return null;
 
@@ -54,6 +60,10 @@ export function ReviewDraftModal({
 
   const actionApprove = async (formData: FormData) => {
     setSubmitting(true);
+    // Inject location IDs into formData
+    if (location.propertyId) formData.set("property_id", location.propertyId);
+    if (location.buildingId) formData.set("building_id", location.buildingId);
+    if (location.unitId) formData.set("unit_id", location.unitId);
     const res = await approveWorkOrderDraft(draft.id, formData);
     setSubmitting(false);
 
@@ -132,6 +142,20 @@ export function ReviewDraftModal({
                 className="space-y-4"
               >
                 <GlassCard className="p-5 space-y-4">
+                  {/* Location Picker */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-white/50 uppercase tracking-wide flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5" /> Link to Property
+                      <span className="text-white/20 normal-case tracking-normal font-normal ml-1">
+                        (optional)
+                      </span>
+                    </label>
+                    <PropertyLocationPicker
+                      value={location}
+                      onChange={setLocation}
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-white/50 uppercase tracking-wide flex items-center gap-1.5">
@@ -161,7 +185,7 @@ export function ReviewDraftModal({
                             ? "border-red-500/50 focus:ring-red-500/50"
                             : "border-white/10 focus:ring-brand-primary/50",
                         )}
-                        placeholder="e.g. Unit 4B"
+                        placeholder="e.g. Unit 4B — auto-filled from picker or type manually"
                       />
                     </div>
                   </div>
@@ -198,7 +222,7 @@ export function ReviewDraftModal({
                   Original Transcript / Message
                 </label>
                 <div className="bg-black/40 border border-white/5 rounded-xl p-4 text-sm text-white/70 italic leading-relaxed">
-                  "{draft.raw_content}"
+                  &ldquo;{draft.raw_content}&rdquo;
                 </div>
               </div>
             </div>

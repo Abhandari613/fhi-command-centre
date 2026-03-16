@@ -22,7 +22,7 @@ export default function ReceiptUploadPage() {
             </AnimatedButton>
           </Link>
           <div>
-            <h1 className="text-3xl font-black tracking-tighter text-white">
+            <h1 className="text-2xl font-black tracking-tight text-white">
               Upload Receipt
             </h1>
             <p className="text-white/60 text-sm font-medium">

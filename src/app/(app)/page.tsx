@@ -13,16 +13,27 @@ import {
   type AgingSummary,
   type AgedReceivable,
 } from "@/app/actions/receivables-actions";
-import { getDashboardJobs, type DashboardJob } from "@/app/actions/dashboard-jobs-actions";
+import {
+  getDashboardJobs,
+  type DashboardJob,
+} from "@/app/actions/dashboard-jobs-actions";
 import { getCompletedJobsFinanceSummary } from "@/app/actions/finance-bridge-actions";
+import {
+  getProperties,
+  getAllActiveTurnovers,
+} from "@/app/actions/property-actions";
+import type { PropertyTurnoverSummary, Turnover } from "@/types/properties";
+import { countByUrgency, type UrgencyTier } from "@/lib/turnover-urgency";
 import {
   AlertTriangle,
   ArrowRight,
+  Building2,
   Calendar,
   Clock,
   DollarSign,
   Hammer,
   Camera,
+  RotateCw,
   TrendingUp,
   Activity,
   BarChart3,
@@ -61,6 +72,16 @@ export default function BloombergDashboard() {
   const [agingSummary, setAgingSummary] = useState<AgingSummary | null>(null);
   const [receivables, setReceivables] = useState<AgedReceivable[]>([]);
   const [profitJobs, setProfitJobs] = useState<JobProfit[]>([]);
+  const [properties, setProperties] = useState<PropertyTurnoverSummary[]>([]);
+  const [urgencyCounts, setUrgencyCounts] = useState<
+    Record<UrgencyTier, number>
+  >({
+    fire: 0,
+    hot: 0,
+    warm: 0,
+    cool: 0,
+    no_date: 0,
+  });
 
   // Derived metrics
   const [metrics, setMetrics] = useState({
@@ -89,18 +110,28 @@ export default function BloombergDashboard() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [jobsData, agingData, receivablesData, profitData] =
-          await Promise.all([
-            getDashboardJobs(),
-            getAgingSummary(),
-            getAgedReceivables(),
-            getCompletedJobsFinanceSummary(),
-          ]);
+        const [
+          jobsData,
+          agingData,
+          receivablesData,
+          profitData,
+          propertiesData,
+          turnoversData,
+        ] = await Promise.all([
+          getDashboardJobs(),
+          getAgingSummary(),
+          getAgedReceivables(),
+          getCompletedJobsFinanceSummary(),
+          getProperties(),
+          getAllActiveTurnovers(),
+        ]);
 
         setJobs(jobsData);
         setAgingSummary(agingData);
         setReceivables(receivablesData);
+        setProperties(propertiesData);
         setProfitJobs(profitData as JobProfit[]);
+        setUrgencyCounts(countByUrgency(turnoversData));
 
         // Status counts for funnel
         const counts: Record<string, number> = {};
@@ -116,16 +147,16 @@ export default function BloombergDashboard() {
 
         // Active = scheduled + in_progress
         const active = jobsData.filter((j) =>
-          ["scheduled", "in_progress"].includes(j.status)
+          ["scheduled", "in_progress"].includes(j.status),
         ).length;
 
         // Revenue & margin from profit summary
         const totalRev = (profitData as JobProfit[]).reduce(
           (s, j) => s + (j.revenue || 0),
-          0
+          0,
         );
         const margins = (profitData as JobProfit[]).filter(
-          (j) => j.margin_pct > 0
+          (j) => j.margin_pct > 0,
         );
         const avgMargin =
           margins.length > 0
@@ -314,9 +345,7 @@ export default function BloombergDashboard() {
               >
                 <span
                   className={`text-xl font-black tabular-nums font-mono ${
-                    metrics.overdueCount > 0
-                      ? "text-red-400"
-                      : "text-amber-400"
+                    metrics.overdueCount > 0 ? "text-red-400" : "text-amber-400"
                   }`}
                 >
                   {fmt.format(metrics.outstanding)}
@@ -396,7 +425,7 @@ export default function BloombergDashboard() {
                 <div className="space-y-1">
                   {jobs
                     .filter((j) =>
-                      ["scheduled", "in_progress"].includes(j.status)
+                      ["scheduled", "in_progress"].includes(j.status),
                     )
                     .slice(0, 4)
                     .map((job, i) => (
@@ -416,9 +445,7 @@ export default function BloombergDashboard() {
                           />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-white/80 truncate group-hover:text-primary transition-colors">
-                              {job.property_address ||
-                                job.address ||
-                                job.title}
+                              {job.property_address || job.address || job.title}
                             </p>
                             <p className="text-[10px] text-white/30 font-mono">
                               {job.job_number} &middot;{" "}
@@ -436,7 +463,7 @@ export default function BloombergDashboard() {
                       </Link>
                     ))}
                   {jobs.filter((j) =>
-                    ["scheduled", "in_progress"].includes(j.status)
+                    ["scheduled", "in_progress"].includes(j.status),
                   ).length === 0 && (
                     <p className="text-xs text-white/20 text-center py-3 font-mono">
                       No active jobs
@@ -467,7 +494,7 @@ export default function BloombergDashboard() {
                     {attentionJobs.map((job) => {
                       const age = Math.floor(
                         (Date.now() - new Date(job.created_at).getTime()) /
-                          (1000 * 60 * 60 * 24)
+                          (1000 * 60 * 60 * 24),
                       );
                       return (
                         <Link key={job.id} href={`/ops/jobs/${job.id}`}>
@@ -619,6 +646,105 @@ export default function BloombergDashboard() {
           </motion.section>
         </div>
 
+        {/* ── TURNOVER PULSE ── */}
+        {properties.length > 0 && !loading && (
+          <motion.section variants={item}>
+            <GlassCard intensity="panel" className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-white flex items-center gap-2">
+                  <RotateCw className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="uppercase tracking-wider">Turnovers</span>
+                  <span className="text-white/20 font-mono text-[10px]">
+                    {properties.reduce((s, p) => s + p.active_turnovers, 0)}{" "}
+                    active
+                  </span>
+                </h2>
+                <Link
+                  href="/ops/properties/countdown"
+                  className="text-[10px] text-white/30 hover:text-primary transition-colors font-mono"
+                >
+                  COUNTDOWN <ChevronRight className="w-3 h-3 inline" />
+                </Link>
+              </div>
+
+              {/* Urgency summary strip */}
+              {(urgencyCounts.fire > 0 || urgencyCounts.hot > 0) && (
+                <Link href="/ops/properties/countdown">
+                  <div className="flex items-center gap-2 p-2 rounded bg-white/[0.02] border border-white/[0.04] hover:border-primary/20 transition-colors">
+                    {urgencyCounts.fire > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold font-mono text-red-400 bg-red-500/15 border border-red-500/30 px-2 py-0.5 rounded animate-pulse">
+                        {urgencyCounts.fire} FIRE
+                      </span>
+                    )}
+                    {urgencyCounts.hot > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold font-mono text-orange-400 bg-orange-500/15 border border-orange-500/30 px-2 py-0.5 rounded">
+                        {urgencyCounts.hot} HOT
+                      </span>
+                    )}
+                    {urgencyCounts.warm > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold font-mono text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded">
+                        {urgencyCounts.warm} WARM
+                      </span>
+                    )}
+                    <span className="ml-auto text-[9px] text-white/20 font-mono">
+                      by move-in date &rarr;
+                    </span>
+                  </div>
+                </Link>
+              )}
+
+              <div className="space-y-1.5">
+                {properties
+                  .filter(
+                    (p) => p.active_turnovers > 0 || p.units_in_turnover > 0,
+                  )
+                  .slice(0, 4)
+                  .map((p) => (
+                    <Link
+                      key={p.property_id}
+                      href={`/ops/properties/${p.property_id}`}
+                    >
+                      <div className="flex items-center gap-3 p-2 rounded hover:bg-white/[0.03] transition-colors group">
+                        <div className="w-1.5 h-8 rounded-full bg-amber-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-white/80 truncate group-hover:text-primary transition-colors">
+                            {p.property_name}
+                          </p>
+                          <p className="text-[10px] text-white/30 font-mono">
+                            {p.units_in_turnover} turning &middot;{" "}
+                            {p.units_ready} ready &middot; {p.total_units} total
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-mono font-bold text-amber-400">
+                            {p.total_units > 0
+                              ? Math.round(
+                                  ((p.units_ready +
+                                    (p.total_units -
+                                      p.units_in_turnover -
+                                      p.units_vacant -
+                                      p.units_ready)) /
+                                    p.total_units) *
+                                    100,
+                                )
+                              : 0}
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                {properties.filter((p) => p.active_turnovers > 0).length ===
+                  0 && (
+                  <p className="text-xs text-white/20 text-center py-2 font-mono">
+                    No active turnovers
+                  </p>
+                )}
+              </div>
+            </GlassCard>
+          </motion.section>
+        )}
+
         {/* ── QUICK ACTIONS ── */}
         <motion.section variants={item} className="space-y-3">
           <h2 className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">
@@ -662,10 +788,7 @@ export default function BloombergDashboard() {
                 className="w-full h-16 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15"
               >
                 <div className="w-7 h-7 rounded-sm bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/15">
-                  <Calendar
-                    className="w-3.5 h-3.5"
-                    strokeWidth={2.5}
-                  />
+                  <Calendar className="w-3.5 h-3.5" strokeWidth={2.5} />
                 </div>
                 <span className="font-bold text-[9px] tracking-wide uppercase">
                   Schedule
@@ -673,19 +796,16 @@ export default function BloombergDashboard() {
               </AnimatedButton>
             </Link>
 
-            <Link href="/ops/finance">
+            <Link href="/ops/properties">
               <AnimatedButton
                 variant="secondary"
                 className="w-full h-16 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15"
               >
-                <div className="w-7 h-7 rounded-sm bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/15">
-                  <TrendingUp
-                    className="w-3.5 h-3.5"
-                    strokeWidth={2.5}
-                  />
+                <div className="w-7 h-7 rounded-sm bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/15">
+                  <Building2 className="w-3.5 h-3.5" strokeWidth={2.5} />
                 </div>
                 <span className="font-bold text-[9px] tracking-wide uppercase">
-                  Finance
+                  Properties
                 </span>
               </AnimatedButton>
             </Link>

@@ -14,6 +14,67 @@ export type Database = {
   };
   public: {
     Tables: {
+      buildings: {
+        Row: {
+          address: string | null;
+          code: string | null;
+          created_at: string | null;
+          floor_count: number | null;
+          id: string;
+          name: string;
+          notes: string | null;
+          organization_id: string;
+          property_id: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          address?: string | null;
+          code?: string | null;
+          created_at?: string | null;
+          floor_count?: number | null;
+          id?: string;
+          name: string;
+          notes?: string | null;
+          organization_id: string;
+          property_id: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          address?: string | null;
+          code?: string | null;
+          created_at?: string | null;
+          floor_count?: number | null;
+          id?: string;
+          name?: string;
+          notes?: string | null;
+          organization_id?: string;
+          property_id?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "buildings_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "buildings_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "buildings_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "property_turnover_summary";
+            referencedColumns: ["property_id"];
+          },
+        ];
+      };
       calibration_cycles: {
         Row: {
           completed_date: string | null;
@@ -237,6 +298,89 @@ export type Database = {
           role?: string | null;
         };
         Relationships: [];
+      };
+      email_scan_log: {
+        Row: {
+          classification: string | null;
+          from_address: string | null;
+          gmail_message_id: string;
+          id: string;
+          job_id: string | null;
+          organization_id: string;
+          processed_at: string | null;
+          subject: string | null;
+        };
+        Insert: {
+          classification?: string | null;
+          from_address?: string | null;
+          gmail_message_id: string;
+          id?: string;
+          job_id?: string | null;
+          organization_id: string;
+          processed_at?: string | null;
+          subject?: string | null;
+        };
+        Update: {
+          classification?: string | null;
+          from_address?: string | null;
+          gmail_message_id?: string;
+          id?: string;
+          job_id?: string | null;
+          organization_id?: string;
+          processed_at?: string | null;
+          subject?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "email_scan_log_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "email_scan_log_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      email_sender_rules: {
+        Row: {
+          classification: string;
+          created_at: string | null;
+          email_pattern: string;
+          id: string;
+          organization_id: string;
+          sender_name: string | null;
+        };
+        Insert: {
+          classification?: string;
+          created_at?: string | null;
+          email_pattern: string;
+          id?: string;
+          organization_id: string;
+          sender_name?: string | null;
+        };
+        Update: {
+          classification?: string;
+          created_at?: string | null;
+          email_pattern?: string;
+          id?: string;
+          organization_id?: string;
+          sender_name?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "email_sender_rules_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       engagements: {
         Row: {
@@ -944,6 +1088,7 @@ export type Database = {
       jobs: {
         Row: {
           address: string | null;
+          building_id: string | null;
           client_id: string | null;
           created_at: string;
           description: string | null;
@@ -957,6 +1102,7 @@ export type Database = {
           next_reminder_date: string | null;
           organization_id: string;
           property_address: string | null;
+          property_id: string | null;
           quote_expiry_date: string | null;
           requester_email: string | null;
           requester_name: string | null;
@@ -965,10 +1111,12 @@ export type Database = {
           start_date: string | null;
           status: string | null;
           title: string;
+          unit_id: string | null;
           urgency: string | null;
         };
         Insert: {
           address?: string | null;
+          building_id?: string | null;
           client_id?: string | null;
           created_at?: string;
           description?: string | null;
@@ -982,6 +1130,7 @@ export type Database = {
           next_reminder_date?: string | null;
           organization_id: string;
           property_address?: string | null;
+          property_id?: string | null;
           quote_expiry_date?: string | null;
           requester_email?: string | null;
           requester_name?: string | null;
@@ -990,10 +1139,12 @@ export type Database = {
           start_date?: string | null;
           status?: string | null;
           title: string;
+          unit_id?: string | null;
           urgency?: string | null;
         };
         Update: {
           address?: string | null;
+          building_id?: string | null;
           client_id?: string | null;
           created_at?: string;
           description?: string | null;
@@ -1007,6 +1158,7 @@ export type Database = {
           next_reminder_date?: string | null;
           organization_id?: string;
           property_address?: string | null;
+          property_id?: string | null;
           quote_expiry_date?: string | null;
           requester_email?: string | null;
           requester_name?: string | null;
@@ -1015,9 +1167,17 @@ export type Database = {
           start_date?: string | null;
           status?: string | null;
           title?: string;
+          unit_id?: string | null;
           urgency?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "jobs_building_id_fkey";
+            columns: ["building_id"];
+            isOneToOne: false;
+            referencedRelation: "buildings";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "jobs_client_id_fkey";
             columns: ["client_id"];
@@ -1037,6 +1197,27 @@ export type Database = {
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jobs_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jobs_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "property_turnover_summary";
+            referencedColumns: ["property_id"];
+          },
+          {
+            foreignKeyName: "jobs_unit_id_fkey";
+            columns: ["unit_id"];
+            isOneToOne: false;
+            referencedRelation: "units";
             referencedColumns: ["id"];
           },
         ];
@@ -1098,6 +1279,53 @@ export type Database = {
             columns: ["relief_metric_id"];
             isOneToOne: false;
             referencedRelation: "relief_metrics";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          body: string | null;
+          created_at: string | null;
+          id: string;
+          is_read: boolean | null;
+          metadata: Json | null;
+          organization_id: string;
+          read_at: string | null;
+          title: string;
+          type: string;
+          user_id: string | null;
+        };
+        Insert: {
+          body?: string | null;
+          created_at?: string | null;
+          id?: string;
+          is_read?: boolean | null;
+          metadata?: Json | null;
+          organization_id: string;
+          read_at?: string | null;
+          title: string;
+          type: string;
+          user_id?: string | null;
+        };
+        Update: {
+          body?: string | null;
+          created_at?: string | null;
+          id?: string;
+          is_read?: boolean | null;
+          metadata?: Json | null;
+          organization_id?: string;
+          read_at?: string | null;
+          title?: string;
+          type?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];
@@ -1297,6 +1525,63 @@ export type Database = {
           },
         ];
       };
+      properties: {
+        Row: {
+          address: string;
+          client_id: string | null;
+          created_at: string | null;
+          id: string;
+          is_active: boolean | null;
+          lat: number | null;
+          lng: number | null;
+          name: string;
+          notes: string | null;
+          organization_id: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          address: string;
+          client_id?: string | null;
+          created_at?: string | null;
+          id?: string;
+          is_active?: boolean | null;
+          lat?: number | null;
+          lng?: number | null;
+          name: string;
+          notes?: string | null;
+          organization_id: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          address?: string;
+          client_id?: string | null;
+          created_at?: string | null;
+          id?: string;
+          is_active?: boolean | null;
+          lat?: number | null;
+          lng?: number | null;
+          name?: string;
+          notes?: string | null;
+          organization_id?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "properties_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "properties_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       quote_line_items: {
         Row: {
           created_at: string;
@@ -1472,6 +1757,41 @@ export type Database = {
             columns: ["intervention_id"];
             isOneToOne: false;
             referencedRelation: "interventions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      saved_rates: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          organization_id: string;
+          task_name: string;
+          unit_price: number;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          organization_id: string;
+          task_name: string;
+          unit_price?: number;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          organization_id?: string;
+          task_name?: string;
+          unit_price?: number;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "saved_rates_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];
@@ -1735,6 +2055,254 @@ export type Database = {
           },
         ];
       };
+      turnover_tasks: {
+        Row: {
+          actual_cost: number | null;
+          assigned_to: string | null;
+          completed_at: string | null;
+          created_at: string | null;
+          description: string;
+          estimated_cost: number | null;
+          id: string;
+          organization_id: string;
+          sort_order: number | null;
+          status: string;
+          trade: string | null;
+          turnover_id: string;
+        };
+        Insert: {
+          actual_cost?: number | null;
+          assigned_to?: string | null;
+          completed_at?: string | null;
+          created_at?: string | null;
+          description: string;
+          estimated_cost?: number | null;
+          id?: string;
+          organization_id: string;
+          sort_order?: number | null;
+          status?: string;
+          trade?: string | null;
+          turnover_id: string;
+        };
+        Update: {
+          actual_cost?: number | null;
+          assigned_to?: string | null;
+          completed_at?: string | null;
+          created_at?: string | null;
+          description?: string;
+          estimated_cost?: number | null;
+          id?: string;
+          organization_id?: string;
+          sort_order?: number | null;
+          status?: string;
+          trade?: string | null;
+          turnover_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "turnover_tasks_assigned_to_fkey";
+            columns: ["assigned_to"];
+            isOneToOne: false;
+            referencedRelation: "subcontractors";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "turnover_tasks_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "turnover_tasks_turnover_id_fkey";
+            columns: ["turnover_id"];
+            isOneToOne: false;
+            referencedRelation: "turnovers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      turnover_templates: {
+        Row: {
+          created_at: string | null;
+          description: string | null;
+          id: string;
+          is_active: boolean | null;
+          name: string;
+          organization_id: string;
+          tasks: Json;
+        };
+        Insert: {
+          created_at?: string | null;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean | null;
+          name: string;
+          organization_id: string;
+          tasks?: Json;
+        };
+        Update: {
+          created_at?: string | null;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean | null;
+          name?: string;
+          organization_id?: string;
+          tasks?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "turnover_templates_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      turnovers: {
+        Row: {
+          actual_cost: number | null;
+          assigned_to: string | null;
+          created_at: string | null;
+          estimated_cost: number | null;
+          id: string;
+          is_active: boolean | null;
+          job_id: string | null;
+          move_in_date: string | null;
+          move_out_date: string | null;
+          notes: string | null;
+          organization_id: string;
+          stage: string;
+          target_ready_date: string | null;
+          unit_id: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          actual_cost?: number | null;
+          assigned_to?: string | null;
+          created_at?: string | null;
+          estimated_cost?: number | null;
+          id?: string;
+          is_active?: boolean | null;
+          job_id?: string | null;
+          move_in_date?: string | null;
+          move_out_date?: string | null;
+          notes?: string | null;
+          organization_id: string;
+          stage?: string;
+          target_ready_date?: string | null;
+          unit_id: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          actual_cost?: number | null;
+          assigned_to?: string | null;
+          created_at?: string | null;
+          estimated_cost?: number | null;
+          id?: string;
+          is_active?: boolean | null;
+          job_id?: string | null;
+          move_in_date?: string | null;
+          move_out_date?: string | null;
+          notes?: string | null;
+          organization_id?: string;
+          stage?: string;
+          target_ready_date?: string | null;
+          unit_id?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "turnovers_assigned_to_fkey";
+            columns: ["assigned_to"];
+            isOneToOne: false;
+            referencedRelation: "subcontractors";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "turnovers_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "turnovers_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "turnovers_unit_id_fkey";
+            columns: ["unit_id"];
+            isOneToOne: false;
+            referencedRelation: "units";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      units: {
+        Row: {
+          bathrooms: number | null;
+          bedrooms: number | null;
+          building_id: string;
+          created_at: string | null;
+          floor: number | null;
+          id: string;
+          notes: string | null;
+          organization_id: string;
+          sqft: number | null;
+          status: string;
+          unit_number: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          bathrooms?: number | null;
+          bedrooms?: number | null;
+          building_id: string;
+          created_at?: string | null;
+          floor?: number | null;
+          id?: string;
+          notes?: string | null;
+          organization_id: string;
+          sqft?: number | null;
+          status?: string;
+          unit_number: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          bathrooms?: number | null;
+          bedrooms?: number | null;
+          building_id?: string;
+          created_at?: string | null;
+          floor?: number | null;
+          id?: string;
+          notes?: string | null;
+          organization_id?: string;
+          sqft?: number | null;
+          status?: string;
+          unit_number?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "units_building_id_fkey";
+            columns: ["building_id"];
+            isOneToOne: false;
+            referencedRelation: "buildings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "units_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_profiles: {
         Row: {
           avatar_url: string | null;
@@ -1839,6 +2407,30 @@ export type Database = {
             columns: ["period_id"];
             isOneToOne: false;
             referencedRelation: "financial_periods";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      property_turnover_summary: {
+        Row: {
+          active_turnovers: number | null;
+          building_count: number | null;
+          completed_turnovers: number | null;
+          organization_id: string | null;
+          property_address: string | null;
+          property_id: string | null;
+          property_name: string | null;
+          total_units: number | null;
+          units_in_turnover: number | null;
+          units_ready: number | null;
+          units_vacant: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "properties_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];

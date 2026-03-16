@@ -58,7 +58,7 @@ export default async function JobFinancePage({
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">
+          <h1 className="text-2xl font-black tracking-tight text-white">
             Job Finance
           </h1>
           <p className="text-sm opacity-50">

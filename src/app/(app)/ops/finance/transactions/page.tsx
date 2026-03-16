@@ -109,7 +109,7 @@ export default function TransactionsPage() {
           <ArrowLeft className="w-6 h-6" />
         </Link>
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">
+          <h1 className="text-2xl font-black tracking-tight text-white">
             Transactions
           </h1>
           <p className="opacity-70 text-sm">Review & Assign</p>

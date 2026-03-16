@@ -32,7 +32,10 @@ export async function approveWorkOrderDraft(
   ) as string;
   const trade_type = formData.get("trade_type") as string;
   const description = formData.get("description") as string;
-  const client_name = formData.get("client_name") as string; // Optional: could lookup client by name or create one contextually
+  const client_name = formData.get("client_name") as string;
+  const property_id = (formData.get("property_id") as string) || null;
+  const building_id = (formData.get("building_id") as string) || null;
+  const unit_id = (formData.get("unit_id") as string) || null;
 
   if (!property_address_or_unit) {
     return { error: "Property Address is required" };
@@ -115,6 +118,9 @@ export async function approveWorkOrderDraft(
       urgency,
       property_address: property_address_or_unit,
       address: property_address_or_unit,
+      property_id,
+      building_id,
+      unit_id,
       requester_name: client_name || null,
       source_email_subject: rawContent.split("\n")[0] || null,
       source_email_body: rawContent,
@@ -143,6 +149,9 @@ export async function approveWorkOrderDraft(
       organization_id: orgId,
       client_id: clientId,
       property_address_or_unit,
+      property_id,
+      building_id,
+      unit_id,
       status: "Unassigned",
     })
     .select("id")

@@ -84,18 +84,20 @@ export default function ClientsPage() {
     <div className="min-h-screen pb-24 p-6 space-y-6">
       <header className="flex justify-between items-end mb-4">
         <div>
-          <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">
+          <h1 className="text-2xl font-black tracking-tight text-white">
             Property Managers
           </h1>
-          <p className="opacity-60 text-sm">
-            Manage your property managers and clients
+          <p className="text-[10px] font-mono text-white/30 tracking-wider">
+            Manage clients &amp; contacts
           </p>
         </div>
         <AnimatedButton
+          variant="primary"
+          size="sm"
           onClick={() => setIsCreating(true)}
-          className="shadow-lg shadow-primary/20"
+          className="gap-1.5"
         >
-          <Plus className="w-5 h-5 mr-2" /> New PM / Client
+          <Plus className="w-4 h-4" /> New
         </AnimatedButton>
       </header>
 
@@ -103,7 +105,7 @@ export default function ClientsPage() {
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-40 text-white" />
         <input
-          className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-lg focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-white/20"
+          className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg pl-12 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary/40 transition-colors placeholder:text-white/20"
           placeholder="Search properties or clients..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}

@@ -109,7 +109,7 @@ export default function TestBenchPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <FlaskConical className="w-6 h-6 text-primary" />
-            <h1 className="text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl font-black tracking-tight text-white">
               Test Bench
             </h1>
           </div>

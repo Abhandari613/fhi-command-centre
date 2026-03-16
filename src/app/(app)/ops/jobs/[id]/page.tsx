@@ -9,6 +9,7 @@ import { advanceJobStatus } from "@/app/actions/dashboard-jobs-actions";
 import { getUnconfirmedTasks } from "@/app/actions/rescope-actions";
 import { uploadJobPhoto } from "@/app/actions/photo-actions";
 import {
+  ArrowLeft,
   MapPin,
   Mail,
   AlertTriangle,
@@ -179,6 +180,13 @@ export default function JobDetailPage() {
     <div className="space-y-5">
       {/* Header */}
       <header>
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1 text-[10px] text-white/30 hover:text-primary font-mono transition-colors mb-2"
+        >
+          <ArrowLeft className="w-3 h-3" />
+          JOBS
+        </Link>
         <div className="flex items-center gap-3 mb-1">
           <span className="text-sm font-mono font-bold opacity-60">
             {job.job_number}
@@ -190,7 +198,7 @@ export default function JobDetailPage() {
             </span>
           )}
         </div>
-        <h1 className="text-2xl font-extrabold tracking-tight">
+        <h1 className="text-2xl font-black tracking-tight text-white">
           {job.property_address || job.address || job.title}
         </h1>
       </header>

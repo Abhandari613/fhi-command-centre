@@ -134,7 +134,9 @@ export default function ScopePage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-extrabold tracking-tight">Scope Work</h1>
+        <h1 className="text-2xl font-black tracking-tight text-white">
+          Scope Work
+        </h1>
         <p className="text-sm opacity-70">
           {job?.job_number} &mdash; {job?.property_address || job?.title}
         </p>
@@ -236,7 +238,7 @@ export default function ScopePage() {
             onChange={(e) => setNewTask(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addTask()}
             placeholder="Add a task..."
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm placeholder:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm placeholder:opacity-40 focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
           <button
             onClick={addTask}
@@ -251,7 +253,7 @@ export default function ScopePage() {
       <button
         onClick={handleSave}
         disabled={saving || tasks.filter((t) => t.is_confirmed).length === 0}
-        className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-bold rounded-xl py-4 text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
+        className="w-full bg-gradient-to-b from-primary to-[#e05e00] hover:from-[#ff7a1a] hover:to-primary shadow-[0_4px_20px_-2px_rgba(255,107,0,0.4)] disabled:opacity-40 text-white font-bold rounded-xl py-4 text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
       >
         {saving ? (
           <Loader2 className="w-5 h-5 animate-spin" />

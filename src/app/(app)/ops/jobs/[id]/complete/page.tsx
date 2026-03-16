@@ -95,7 +95,7 @@ export default function CompletionPage() {
       <header>
         <div className="flex items-center gap-2 mb-1">
           <ClipboardCheck className="w-6 h-6 text-cyan-400" />
-          <h1 className="text-2xl font-extrabold tracking-tight">
+          <h1 className="text-2xl font-black tracking-tight text-white">
             Completion Report
           </h1>
         </div>

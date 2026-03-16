@@ -209,7 +209,9 @@ export default function QuotePage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-extrabold tracking-tight">Build Quote</h1>
+        <h1 className="text-2xl font-black tracking-tight text-white">
+          Build Quote
+        </h1>
         <p className="text-sm opacity-70">
           {job?.job_number} &mdash; {job?.property_address || job?.title}
         </p>
@@ -301,7 +303,7 @@ export default function QuotePage() {
               type="text"
               value={item.description}
               onChange={(e) => updateItem(idx, "description", e.target.value)}
-              className="w-full bg-transparent border-b border-white/10 pb-1 text-sm font-medium focus:outline-none focus:border-blue-500/50"
+              className="w-full bg-transparent border-b border-white/10 pb-1 text-sm font-medium focus:outline-none focus:border-primary/50"
             />
             <div className="flex gap-3">
               <div className="flex-1">
@@ -313,7 +315,7 @@ export default function QuotePage() {
                   onChange={(e) =>
                     updateItem(idx, "quantity", parseFloat(e.target.value) || 1)
                   }
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
                 />
               </div>
               <div className="flex-1">
@@ -330,7 +332,7 @@ export default function QuotePage() {
                       parseFloat(e.target.value) || 0,
                     )
                   }
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
                 />
               </div>
               <div className="flex-1">
@@ -373,7 +375,7 @@ export default function QuotePage() {
         <button
           onClick={handleSendToNeil}
           disabled={saving || total === 0}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-bold rounded-xl py-4 text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
+          className="w-full bg-gradient-to-b from-primary to-[#e05e00] hover:from-[#ff7a1a] hover:to-primary shadow-[0_4px_20px_-2px_rgba(255,107,0,0.4)] disabled:opacity-40 text-white font-bold rounded-xl py-4 text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
         >
           {saving ? (
             <Loader2 className="w-5 h-5 animate-spin" />
