@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
+  Home,
   LayoutDashboard,
   Briefcase,
   FileText,
@@ -17,6 +18,7 @@ export function BottomNav() {
 
   const navItems: { name: string; href: string; icon: any; isFab?: boolean }[] =
     [
+      { name: "Home", href: "/", icon: Home },
       { name: "Jobs", href: "/dashboard", icon: LayoutDashboard },
       { name: "Work Orders", href: "/ops/work-orders", icon: Briefcase },
       { name: "New Job", href: "/ingest", icon: Plus, isFab: true },
@@ -34,7 +36,9 @@ export function BottomNav() {
         <div className="bg-[#0c0c0e]/95 backdrop-blur-xl px-6 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-between items-end">
           {navItems.map((item) => {
             const isActive =
-              pathname === item.href || pathname?.startsWith(item.href + "/");
+              item.href === "/"
+                ? pathname === "/"
+                : pathname === item.href || pathname?.startsWith(item.href + "/");
 
             if (item.isFab) {
               return (
