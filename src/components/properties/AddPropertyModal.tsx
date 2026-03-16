@@ -6,6 +6,7 @@ import { AnimatedButton } from "@/components/ui/AnimatedButton";
 import { createProperty } from "@/app/actions/property-actions";
 import { X, Building2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { GoogleAddressInput } from "@/components/ui/GoogleAddressInput";
 
 export function AddPropertyModal({
   onClose,
@@ -89,13 +90,11 @@ export function AddPropertyModal({
               <label className="block text-[10px] uppercase tracking-wider text-white/40 font-bold mb-1.5">
                 Address
               </label>
-              <input
-                type="text"
+              <GoogleAddressInput
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={setAddress}
                 placeholder="123 Main St, City"
-                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
-                required
+                className="!bg-white/[0.03] !border-white/[0.06] !py-2.5 placeholder:!text-white/20 focus:!border-primary/40"
               />
             </div>
 

@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PropertyLocationPicker } from "@/components/properties/LocationPicker";
 import { cn } from "@/lib/utils";
+import { GoogleAddressInput } from "@/components/ui/GoogleAddressInput";
 
 interface ExtractedData {
   client_name?: string | null;
@@ -52,6 +53,9 @@ export function ReviewDraftModal({
     buildingId?: string;
     unitId?: string;
   }>({});
+  const [addressOrUnit, setAddressOrUnit] = useState(
+    draft?.extracted_data?.property_address_or_unit || "",
+  );
 
   if (!draft) return null;
 
@@ -176,16 +180,20 @@ export function ReviewDraftModal({
                         <span className="text-red-400">*</span>
                       </label>
                       <input
+                        type="hidden"
                         name="property_address_or_unit"
-                        defaultValue={data.property_address_or_unit || ""}
-                        required
+                        value={addressOrUnit}
+                      />
+                      <GoogleAddressInput
+                        value={addressOrUnit}
+                        onChange={setAddressOrUnit}
+                        placeholder="e.g. Unit 4B or search address"
                         className={cn(
-                          "w-full bg-black/40 border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 placeholder:text-white/20",
+                          "!bg-black/40 !py-2",
                           !data.property_address_or_unit
-                            ? "border-red-500/50 focus:ring-red-500/50"
-                            : "border-white/10 focus:ring-brand-primary/50",
+                            ? "!border-red-500/50 focus:!ring-red-500/50"
+                            : "!border-white/10 focus:!ring-brand-primary/50",
                         )}
-                        placeholder="e.g. Unit 4B — auto-filled from picker or type manually"
                       />
                     </div>
                   </div>
