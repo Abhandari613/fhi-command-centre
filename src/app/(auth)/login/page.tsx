@@ -13,18 +13,13 @@ export default function LoginPage({
 
   return (
     <div className="min-h-[100dvh] w-full flex items-center justify-center relative overflow-hidden bg-[#0a0a0a]">
-      {/* Ambient ember glow */}
-      <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/[0.04] blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-100px] right-[-100px] w-[400px] h-[400px] rounded-full bg-orange-900/[0.03] blur-[100px] pointer-events-none" />
-
-      {/* Subtle grid lines */}
+      {/* Background image */}
       <div
-        className="absolute inset-0 opacity-[0.015]"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: "60px 60px",
-        }}
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url('/login_background_painter_v2.jpg')` }}
       />
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/60" />
 
       {/* Login Card */}
       <motion.div
