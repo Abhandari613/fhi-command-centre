@@ -43,9 +43,9 @@ export function JobFunnel({ counts }: JobFunnelProps) {
             className="flex items-center gap-2 group"
           >
             <span
-              className={`w-5 text-[9px] font-mono font-bold ${s.color} opacity-60 shrink-0`}
+              className={`w-16 text-[9px] font-mono font-bold ${s.color} opacity-60 shrink-0 truncate`}
             >
-              {s.short}
+              {s.label}
             </span>
             <div className="flex-1 h-4 bg-white/[0.02] rounded-sm overflow-hidden relative">
               <motion.div
