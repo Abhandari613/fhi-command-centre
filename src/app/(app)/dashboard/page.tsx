@@ -158,7 +158,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3">
           <NotificationBell />
           <Link
-            href="/ingest"
+            href="/jobs/new"
             className="bg-gradient-to-b from-primary to-[#e05e00] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-[0_4px_20px_-2px_rgba(255,107,0,0.5)] border border-primary/50 transition-all active:scale-95"
           >
             <Plus className="w-6 h-6" />
@@ -306,7 +306,7 @@ export default function DashboardPage() {
           <Inbox className="w-12 h-12 mx-auto opacity-20 mb-3" />
           <p className="text-lg font-semibold opacity-40">No jobs yet</p>
           <Link
-            href="/ingest"
+            href="/jobs/new"
             className="inline-block mt-4 bg-gradient-to-b from-primary to-[#e05e00] text-white font-bold rounded-xl px-6 py-3 min-h-[48px] shadow-[0_4px_20px_-2px_rgba(255,107,0,0.4)]"
           >
             Create your first job

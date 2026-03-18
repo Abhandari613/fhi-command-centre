@@ -15,7 +15,7 @@ export default function QuotesPage() {
               Estimates
             </h1>
             <p className="text-[10px] font-mono text-white/30 tracking-wider">
-              Legacy Estimates
+              Standalone quotes &amp; estimates
             </p>
           </div>
           <Link href="/ops/quotes/create">

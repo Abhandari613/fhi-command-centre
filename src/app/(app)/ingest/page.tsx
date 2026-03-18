@@ -68,10 +68,10 @@ export default function IngestPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-black tracking-tight text-white">
-          New Job
+          Email Intake
         </h1>
         <p className="text-[10px] font-mono text-white/30 tracking-wider">
-          Paste an email or add photos to start a job
+          Paste an incoming email to auto-create a job
         </p>
       </header>
 

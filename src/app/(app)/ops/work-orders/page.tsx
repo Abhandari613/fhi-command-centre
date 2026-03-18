@@ -19,7 +19,7 @@ export default function WorkOrdersPage() {
             </p>
           </div>
           <Link
-            href="/ops/quotes/create"
+            href="/jobs/new"
             className="bg-primary hover:bg-primary/90 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg shadow-primary/25 transition-all"
           >
             <Plus className="w-6 h-6" />
