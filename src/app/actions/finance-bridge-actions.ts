@@ -170,7 +170,18 @@ export async function getJobProfitSummary(jobId: string) {
     .eq("job_id", jobId)
     .single();
 
-  return data;
+  if (!data) return null;
+
+  // Augment with unrecorded cost delta (WO estimates vs actual payouts)
+  const woEstimated = Number(data.wo_estimated_costs || 0);
+  const actualPayouts = Number(data.total_payouts || 0);
+  const unrecordedCosts = Math.max(0, woEstimated - actualPayouts);
+
+  return {
+    ...data,
+    wo_estimated_costs: woEstimated,
+    unrecorded_costs: unrecordedCosts,
+  };
 }
 
 export async function getCompletedJobsFinanceSummary() {

@@ -5,13 +5,21 @@ import { createClient } from "@/utils/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { AnimatedButton } from "@/components/ui/AnimatedButton";
 import { logJobEvent } from "@/app/actions/event-actions";
-import { ArrowLeft, Loader2, Briefcase, Printer, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Briefcase,
+  Printer,
+  Send,
+  ExternalLink,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AssignSubModal } from "@/components/work-orders/AssignSubModal";
 import { PaymentModal } from "@/components/payments/PaymentModal";
 import { PaymentList } from "@/components/payments/PaymentList";
 import { JobPhotoGallery } from "@/components/work-orders/JobPhotoGallery";
+import { getWorkOrderLinkedJob } from "@/app/actions/work-order-actions";
 import { motion } from "framer-motion";
 import { User, Phone } from "lucide-react";
 
@@ -40,13 +48,14 @@ export default function WorkOrderDetailsPage() {
 
   const [photos, setPhotos] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [linkedJob, setLinkedJob] = useState<any>(null);
 
   const fetchPhotos = useCallback(async () => {
-    // Reuse job_photos tied by job_id=wo.id
+    // Query by work_order_id (new) OR job_id=work_order.id (legacy workaround for existing records)
     const { data } = await supabase
       .from("job_photos")
       .select("*")
-      .eq("job_id", id)
+      .or(`work_order_id.eq.${id},job_id.eq.${id}`)
       .order("created_at", { ascending: false });
     setPhotos(data || []);
   }, [supabase, id]);
@@ -82,6 +91,11 @@ export default function WorkOrderDetailsPage() {
         .order("created_at", { ascending: false });
 
       setEvents(eventsData || []);
+
+      // Load linked job if this work order was created from a job
+      const job = await getWorkOrderLinkedJob(id);
+      setLinkedJob(job);
+
       setLoading(false);
     };
 
@@ -159,6 +173,37 @@ export default function WorkOrderDetailsPage() {
             </div>
           </div>
         </header>
+
+        {/* Linked Job context */}
+        {linkedJob && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Link href={`/ops/jobs/${linkedJob.id}`}>
+              <GlassCard className="p-4 flex items-center justify-between hover:bg-white/10 transition-colors cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <Briefcase className="w-4 h-4 text-primary opacity-70" />
+                  <div>
+                    <p className="text-[10px] uppercase font-bold opacity-40 tracking-widest mb-0.5">
+                      Linked Job
+                    </p>
+                    <p className="text-sm font-bold">
+                      {linkedJob.job_number} —{" "}
+                      {linkedJob.property_address || linkedJob.title}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full capitalize">
+                    {linkedJob.status}
+                  </span>
+                  <ExternalLink className="w-4 h-4 opacity-30" />
+                </div>
+              </GlassCard>
+            </Link>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

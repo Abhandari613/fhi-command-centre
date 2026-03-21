@@ -93,6 +93,20 @@ export async function advanceJobStatus(jobId: string) {
   const nextStatus = NEXT_STATUS[job.status];
   if (!nextStatus) return { success: false, error: "No next status" };
 
+  // Soft guard: warn if completing a job that has incomplete work orders
+  let warning: string | undefined;
+  if (nextStatus === "completed") {
+    const { data: incompleteWOs } = await (supabase.from as any)("work_orders")
+      .select("id")
+      .eq("job_id", jobId)
+      .neq("status", "Completed");
+
+    const incompleteCount = (incompleteWOs || []).length;
+    if (incompleteCount > 0) {
+      warning = `${incompleteCount} work order${incompleteCount !== 1 ? "s" : ""} still in progress. Mark them complete in Work Orders when done.`;
+    }
+  }
+
   // Build update payload with timestamps for specific transitions
   const updatePayload: Record<string, any> = { status: nextStatus };
   if (nextStatus === "invoiced") {
@@ -113,5 +127,5 @@ export async function advanceJobStatus(jobId: string) {
   sendStatusTransitionEmail(jobId, nextStatus);
 
   revalidatePath("/dashboard");
-  return { success: true, newStatus: nextStatus };
+  return { success: true, newStatus: nextStatus, ...(warning && { warning }) };
 }

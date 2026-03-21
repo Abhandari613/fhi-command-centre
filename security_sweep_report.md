@@ -1,11 +1,11 @@
-## Security Sweep — 2026-03-18
+## Security Sweep — 2026-03-21
 
 Git Tracking: CLEAN ✓ (no .env files tracked by git)
-Staged Secrets: CLEAN ✓ (no JWT / Stripe / Slack / Google / service*role literals found in diff)
-NEXT_PUBLIC*_: CLEAN ✓ (all NEXT*PUBLIC*_ references read from process.env — no hardcoded values)
-.gitignore: HEALTHY ✓ (.env\* rule present; no merge conflicts)
+Staged Secrets: CLEAN ✓ (no JWT / Stripe / Slack / Google / service_role literals found in diff)
+NEXT_PUBLIC_: CLEAN ✓ (all NEXT_PUBLIC_ references read from process.env — no hardcoded values)
+.gitignore: HEALTHY ✓ (.env* rule present; no merge conflicts)
 
-### NEXT*PUBLIC*\* vars in use
+### NEXT_PUBLIC_* vars in use
 
 | Variable                        | Role                                                                     |
 | ------------------------------- | ------------------------------------------------------------------------ |

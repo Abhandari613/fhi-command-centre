@@ -6,7 +6,13 @@ import {
 import { getSubcontractors } from "@/app/actions/sub-actions";
 import { GlassCard } from "@/components/ui/GlassCard";
 import Link from "next/link";
-import { ArrowLeft, DollarSign, TrendingUp, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  DollarSign,
+  TrendingUp,
+  Users,
+  AlertCircle,
+} from "lucide-react";
 import { RecordPayoutForm } from "@/components/finance/RecordPayoutForm";
 
 export default async function JobFinancePage({
@@ -39,6 +45,8 @@ export default async function JobFinancePage({
   const totalPayouts = Number(profitSummary?.total_payouts || 0);
   const grossProfit = revenue - totalPayouts;
   const marginPct = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+  const woEstimatedCosts = Number(profitSummary?.wo_estimated_costs || 0);
+  const unrecordedCosts = Number(profitSummary?.unrecorded_costs || 0);
 
   const marginColor =
     marginPct > 20
@@ -106,6 +114,38 @@ export default async function JobFinancePage({
           </p>
         </GlassCard>
       </div>
+
+      {/* WO Estimated Costs reconciliation */}
+      {woEstimatedCosts > 0 && (
+        <GlassCard className="p-4 space-y-3">
+          <h2 className="text-sm font-bold uppercase opacity-50 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            Work Order Cost Reconciliation
+          </h2>
+          <div className="flex justify-between text-sm">
+            <span className="opacity-60">WO Estimated Sub Costs</span>
+            <span className="font-mono font-bold">
+              ${woEstimatedCosts.toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="opacity-60">Actual Payouts Recorded</span>
+            <span className="font-mono font-bold text-orange-400">
+              ${totalPayouts.toLocaleString()}
+            </span>
+          </div>
+          {unrecordedCosts > 0 && (
+            <div className="flex justify-between text-sm border-t border-white/10 pt-2">
+              <span className="text-yellow-400 font-medium">
+                Unrecorded Costs
+              </span>
+              <span className="font-mono font-bold text-yellow-400">
+                ${unrecordedCosts.toLocaleString()}
+              </span>
+            </div>
+          )}
+        </GlassCard>
+      )}
 
       {/* Record Payout */}
       <GlassCard className="p-5">

@@ -7,6 +7,7 @@ import { RescopeReviewPanel } from "@/components/jobs/RescopeReviewPanel";
 import { getJobWithAttachments } from "@/app/actions/scope-actions";
 import { advanceJobStatus } from "@/app/actions/dashboard-jobs-actions";
 import { getUnconfirmedTasks } from "@/app/actions/rescope-actions";
+import { getJobWorkOrders } from "@/app/actions/work-order-actions";
 import { uploadJobPhoto } from "@/app/actions/photo-actions";
 import {
   ArrowLeft,
@@ -23,6 +24,7 @@ import {
   DollarSign,
   ClipboardCheck,
   Calendar,
+  Briefcase,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -59,6 +61,8 @@ export default function JobDetailPage() {
   const [attachments, setAttachments] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [unconfirmedTasks, setUnconfirmedTasks] = useState<any[]>([]);
+  const [workOrders, setWorkOrders] = useState<any[]>([]);
+  const [advanceWarning, setAdvanceWarning] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [advancing, setAdvancing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -79,12 +83,20 @@ export default function JobDetailPage() {
     const pending = await getUnconfirmedTasks(id);
     setUnconfirmedTasks(pending);
 
+    // Load linked work orders
+    const wos = await getJobWorkOrders(id);
+    setWorkOrders(wos);
+
     setLoaded(true);
   };
 
   const handleAdvance = async () => {
     setAdvancing(true);
-    await advanceJobStatus(id);
+    setAdvanceWarning(null);
+    const result = await advanceJobStatus(id);
+    if (result && "warning" in result && result.warning) {
+      setAdvanceWarning(result.warning as string);
+    }
     await loadJob();
     setAdvancing(false);
   };
@@ -175,6 +187,20 @@ export default function JobDetailPage() {
   const showFinanceLink = ["completed", "invoiced", "paid"].includes(
     job.status,
   );
+  const showWorkOrdersSection = [
+    "scheduled",
+    "in_progress",
+    "completed",
+    "invoiced",
+    "paid",
+  ].includes(job.status);
+
+  const WO_STATUS_COLORS: Record<string, string> = {
+    Draft: "bg-gray-500/20 text-gray-400",
+    Scheduled: "bg-sky-500/20 text-sky-400",
+    "In Progress": "bg-orange-500/20 text-orange-400",
+    Completed: "bg-green-500/20 text-green-400",
+  };
 
   return (
     <div className="space-y-5">
@@ -229,6 +255,14 @@ export default function JobDetailPage() {
           </button>
         )}
       </GlassCard>
+
+      {/* Advance warning */}
+      {advanceWarning && (
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-4 py-3 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-yellow-300">{advanceWarning}</p>
+        </div>
+      )}
 
       {/* Rescope review panel */}
       <RescopeReviewPanel
@@ -356,6 +390,56 @@ export default function JobDetailPage() {
               </li>
             ))}
           </ul>
+        </GlassCard>
+      )}
+
+      {/* Linked Work Orders */}
+      {showWorkOrdersSection && (
+        <GlassCard className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold opacity-60 flex items-center gap-2">
+              <Briefcase className="w-4 h-4" />
+              Work Orders ({workOrders.length})
+            </h3>
+            <Link
+              href="/ops/work-orders"
+              className="text-xs text-primary/70 hover:text-primary transition-colors"
+            >
+              View All
+            </Link>
+          </div>
+          {workOrders.length === 0 ? (
+            <p className="text-xs opacity-40 text-center py-2">
+              No work orders yet
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {workOrders.map((wo: any) => (
+                <li key={wo.id}>
+                  <Link
+                    href={`/ops/work-orders/${wo.id}`}
+                    className="flex items-center justify-between bg-white/5 hover:bg-white/10 rounded-lg px-3 py-2 transition-colors"
+                  >
+                    <div>
+                      <span className="text-sm font-medium">
+                        {wo.property_address_or_unit}
+                      </span>
+                      {wo.taskCount > 0 && (
+                        <span className="text-xs opacity-40 ml-2">
+                          {wo.taskCount} task{wo.taskCount !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-full ${WO_STATUS_COLORS[wo.status] || "bg-white/10 text-white/60"}`}
+                    >
+                      {wo.status}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </GlassCard>
       )}
 

@@ -115,7 +115,9 @@ export async function scheduleJob(
   // Get job details
   const { data: job } = await supabase
     .from("jobs")
-    .select("id, job_number, property_address, organization_id, status")
+    .select(
+      "id, job_number, property_address, organization_id, status, client_id, property_id, building_id, unit_id",
+    )
     .eq("id", jobId)
     .single();
 
@@ -221,7 +223,49 @@ export async function scheduleJob(
     gcalSynced: !!gcalEventId,
   });
 
-  // Step 6: Auto-dispatch — if no subs were manually assigned, trigger AI matching
+  // Auto-create a linked work order if one doesn't already exist for this job
+  const { data: existingWO } = await (supabase.from as any)("work_orders")
+    .select("id")
+    .eq("job_id", jobId)
+    .limit(1)
+    .maybeSingle();
+
+  if (!existingWO && job.client_id) {
+    const { data: confirmedTasks } = await supabase
+      .from("job_tasks")
+      .select("description, quantity, unit_price")
+      .eq("job_id", jobId)
+      .eq("is_confirmed", true);
+
+    const { data: newWO } = await (supabase.from as any)("work_orders")
+      .insert({
+        organization_id: job.organization_id,
+        client_id: job.client_id,
+        job_id: jobId,
+        property_address_or_unit: job.property_address || "TBD",
+        status: "Scheduled",
+        due_at: endDate,
+        ...(job.property_id && { property_id: job.property_id }),
+        ...(job.building_id && { building_id: job.building_id }),
+        ...(job.unit_id && { unit_id: job.unit_id }),
+      })
+      .select("id")
+      .single();
+
+    // Seed work order tasks from confirmed job tasks
+    if (newWO && confirmedTasks && confirmedTasks.length > 0) {
+      const woTaskInserts = confirmedTasks.map((t: any) => ({
+        organization_id: job.organization_id,
+        work_order_id: newWO.id,
+        trade_type: t.description || "General",
+        status: "Unassigned",
+        cost_estimate: (t.quantity || 1) * (t.unit_price || 0),
+      }));
+      await (supabase.from as any)("work_order_tasks").insert(woTaskInserts);
+    }
+  }
+
+  // Auto-dispatch — if no subs were manually assigned, trigger AI matching
   if (subIds.length === 0) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     fetch(`${appUrl}/api/jobs/auto-dispatch`, {
