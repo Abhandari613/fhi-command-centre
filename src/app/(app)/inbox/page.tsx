@@ -97,12 +97,19 @@ export default function InboxPage() {
     loadThreads();
   }, [loadThreads]);
 
+  // Default view: only work-related emails (hide irrelevant/spam)
+  const workThreads = threads.filter(
+    (t) => t.classification && t.classification !== "irrelevant",
+  );
+
   const filtered =
     filter === "all"
-      ? threads
-      : filter === "unread"
-        ? threads.filter((t) => !t.is_read)
-        : threads.filter((t) => t.classification === filter);
+      ? workThreads
+      : filter === "all_emails"
+        ? threads
+        : filter === "unread"
+          ? workThreads.filter((t) => !t.is_read)
+          : workThreads.filter((t) => t.classification === filter);
 
   return (
     <div className="space-y-4">
@@ -111,9 +118,9 @@ export default function InboxPage() {
         <div className="flex items-center gap-3">
           <Mail className="w-6 h-6 text-primary" />
           <h1 className="text-xl font-bold text-white">Inbox</h1>
-          {threads.filter((t) => !t.is_read).length > 0 && (
+          {workThreads.filter((t) => !t.is_read).length > 0 && (
             <span className="bg-primary/20 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
-              {threads.filter((t) => !t.is_read).length}
+              {workThreads.filter((t) => !t.is_read).length}
             </span>
           )}
         </div>

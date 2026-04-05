@@ -248,6 +248,18 @@ async function pollGmail() {
           }
         }
 
+        // Skip storing irrelevant emails — only save work-related threads
+        if (isNew && classification === "irrelevant") {
+          results.push({
+            threadId: thread.id,
+            subject: thread.subject,
+            status: "new",
+            classification: "irrelevant",
+            jobId: null,
+          });
+          continue;
+        }
+
         // Upsert the thread metadata
         await supabase.from("email_threads").upsert(
           {
