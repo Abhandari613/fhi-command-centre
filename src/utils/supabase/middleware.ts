@@ -5,6 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const PUBLIC_ROUTES = [
   "/login",
   "/auth",
+  "/api/auth",
   "/s/",
   "/process-flow",
   "/portal",
