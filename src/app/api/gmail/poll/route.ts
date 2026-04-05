@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { fetchRecentEmails } from "@/lib/services/gmail";
+import { fetchRecentThreads } from "@/lib/services/gmail";
 import { pushNotification } from "@/lib/services/notifications";
 
 function getAdminClient() {
@@ -19,11 +19,29 @@ const RUSH_KEYWORDS = [
   "right away",
 ];
 
+// GET handler for Vercel cron
+export async function GET(req: NextRequest) {
+  // Verify cron secret in production
+  const authHeader = req.headers.get("authorization");
+  if (
+    process.env.CRON_SECRET &&
+    authHeader !== `Bearer ${process.env.CRON_SECRET}`
+  ) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return pollGmail();
+}
+
+// POST handler for manual triggers
 export async function POST() {
+  return pollGmail();
+}
+
+async function pollGmail() {
   try {
     const supabase = getAdminClient();
 
-    // Get stored Google tokens (use first org for now — single-tenant)
+    // Get stored Google tokens (single-tenant)
     const { data: tokenRow } = await supabase
       .from("gcal_tokens")
       .select("*")
@@ -37,7 +55,7 @@ export async function POST() {
       );
     }
 
-    // Determine the org — get from user profile if needed
+    // Determine the org
     let organizationId: string;
     if (tokenRow.organization_id) {
       organizationId = tokenRow.organization_id;
@@ -62,185 +80,224 @@ export async function POST() {
       refresh_token: tokenRow.refresh_token,
     };
 
-    // Fetch recent unread emails
-    const emails = await fetchRecentEmails(tokens, 15);
+    // Fetch recent threads (inbox + sent)
+    const threads = await fetchRecentThreads(tokens, 25);
 
-    if (!emails.length) {
-      return NextResponse.json({ processed: 0, message: "No new emails" });
+    if (!threads.length) {
+      return NextResponse.json({ processed: 0, message: "No new threads" });
     }
 
-    // Check which ones we already processed
-    const gmailIds = emails.map((e) => e.id);
-    const { data: alreadyProcessed } = await supabase
-      .from("email_scan_log")
-      .select("gmail_message_id")
-      .in("gmail_message_id", gmailIds);
+    // Check which threads we already have
+    const gmailThreadIds = threads.map((t) => t.id);
+    const { data: existingThreads } = await supabase
+      .from("email_threads")
+      .select("gmail_thread_id, message_count")
+      .eq("organization_id", organizationId)
+      .in("gmail_thread_id", gmailThreadIds);
 
-    const processedSet = new Set(
-      (alreadyProcessed || []).map(
-        (r: { gmail_message_id: string }) => r.gmail_message_id,
-      ),
+    const existingMap = new Map(
+      (existingThreads || []).map((r) => [r.gmail_thread_id, r.message_count]),
     );
-    const newEmails = emails.filter((e) => !processedSet.has(e.id));
-
-    if (!newEmails.length) {
-      return NextResponse.json({
-        processed: 0,
-        message: "All emails already processed",
-      });
-    }
 
     const results: Array<{
-      emailId: string;
-      from?: string;
+      threadId: string;
       subject?: string;
+      status: "new" | "updated" | "unchanged";
       classification?: string;
       jobId?: string | null;
-      error?: string;
     }> = [];
 
-    for (const email of newEmails) {
+    for (const thread of threads) {
+      const existingCount = existingMap.get(thread.id);
+      const isNew = existingCount === undefined;
+      const hasNewMessages =
+        existingCount !== undefined &&
+        thread.messages.length > existingCount;
+
+      if (!isNew && !hasNewMessages) {
+        results.push({
+          threadId: thread.id,
+          subject: thread.subject,
+          status: "unchanged",
+        });
+        continue;
+      }
+
       try {
-        // Classify with AI
-        const classifyRes = await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/ai/classify-email`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              from: email.from,
-              subject: email.subject,
-              body: email.body,
-            }),
-          },
+        // Get the latest message for classification
+        const latestMsg = thread.messages[thread.messages.length - 1];
+        const hasAttachments = thread.messages.some(
+          (m) => m.attachments.length > 0,
         );
 
-        const classification = await classifyRes.json();
-
+        let classification: string = "irrelevant";
         let jobId: string | null = null;
 
-        // Handle based on classification
-        if (
-          classification.classification === "new_work" ||
-          classification.classification === "quote_request"
-        ) {
-          // Auto-create a job
-          const urgency =
-            classification.urgency === "rush" ||
-            RUSH_KEYWORDS.some((kw) =>
-              `${email.subject} ${email.body}`.toLowerCase().includes(kw),
-            )
-              ? "rush"
-              : "standard";
+        // Only classify new threads (not updates to existing ones we already classified)
+        if (isNew) {
+          // Classify with AI
+          const classifyRes = await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/ai/classify-email`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                from: latestMsg.from,
+                subject: thread.subject,
+                body: latestMsg.body,
+              }),
+            },
+          );
 
-          const isQuoteRequest =
-            classification.classification === "quote_request";
+          const classResult = await classifyRes.json();
+          classification = classResult.classification || "irrelevant";
 
-          const { data: job, error: jobError } = await supabase
-            .from("jobs")
-            .insert({
-              organization_id: organizationId,
-              title: email.subject || "Untitled Job",
-              description:
-                classification.summary || email.body?.substring(0, 500),
-              status: "incoming",
-              urgency,
-              property_address: classification.property_address,
-              address: classification.property_address,
-              source_email_subject: email.subject,
-              source_email_body: email.body?.substring(0, 5000),
-            })
-            .select("id, job_number")
-            .single();
-
-          if (!jobError && job) {
-            jobId = job.id;
-
-            // Notify Frank
-            await pushNotification({
-              organizationId,
-              type: "new_job",
-              title: isQuoteRequest
-                ? `Quote request from ${classification.client_name || email.from}`
-                : `New work from ${classification.client_name || email.from}`,
-              body: classification.summary,
-              metadata: {
-                job_id: job.id,
-                job_number: (job as Record<string, unknown>).job_number,
-                from: email.from,
-                classification: classification.classification,
-                urgency,
-              },
-            });
-          }
-        } else if (classification.classification === "job_update") {
-          // Try to find existing job by address or hint
+          // Handle based on classification
           if (
-            classification.existing_job_hint ||
-            classification.property_address
+            classification === "new_work" ||
+            classification === "quote_request"
           ) {
-            const searchTerm =
-              classification.property_address ||
-              classification.existing_job_hint;
-            const { data: existingJobs } = await supabase
-              .from("jobs")
-              .select("id, job_number")
-              .eq("organization_id", organizationId)
-              .or(
-                `property_address.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`,
+            const urgency =
+              classResult.urgency === "rush" ||
+              RUSH_KEYWORDS.some((kw) =>
+                `${thread.subject} ${latestMsg.body}`
+                  .toLowerCase()
+                  .includes(kw),
               )
-              .limit(1);
+                ? "rush"
+                : "standard";
 
-            if (existingJobs?.length) {
-              jobId = existingJobs[0].id;
+            const { data: job } = await supabase
+              .from("jobs")
+              .insert({
+                organization_id: organizationId,
+                title: thread.subject || "Untitled Job",
+                description:
+                  classResult.summary || latestMsg.body?.substring(0, 500),
+                status: "incoming",
+                urgency,
+                property_address: classResult.property_address,
+                address: classResult.property_address,
+                source_email_subject: thread.subject,
+                source_email_body: latestMsg.body?.substring(0, 5000),
+              })
+              .select("id, job_number")
+              .single();
 
+            if (job) {
+              jobId = job.id;
               await pushNotification({
                 organizationId,
-                type: "email_detected",
-                title: `Update for ${(existingJobs[0] as Record<string, unknown>).job_number}`,
-                body: classification.summary,
+                type: "new_job",
+                title:
+                  classification === "quote_request"
+                    ? `Quote request from ${classResult.client_name || latestMsg.from}`
+                    : `New work from ${classResult.client_name || latestMsg.from}`,
+                body: classResult.summary,
                 metadata: {
-                  job_id: existingJobs[0].id,
-                  job_number: (existingJobs[0] as Record<string, unknown>)
-                    .job_number,
-                  from: email.from,
+                  job_id: job.id,
+                  job_number: (job as Record<string, unknown>).job_number,
+                  from: latestMsg.from,
+                  classification,
+                  urgency,
                 },
               });
             }
+          } else if (classification === "job_update") {
+            if (
+              classResult.existing_job_hint ||
+              classResult.property_address
+            ) {
+              const searchTerm =
+                classResult.property_address ||
+                classResult.existing_job_hint;
+              const { data: existingJobs } = await supabase
+                .from("jobs")
+                .select("id, job_number")
+                .eq("organization_id", organizationId)
+                .or(
+                  `property_address.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`,
+                )
+                .limit(1);
+
+              if (existingJobs?.length) {
+                jobId = existingJobs[0].id;
+                await pushNotification({
+                  organizationId,
+                  type: "email_detected",
+                  title: `Update for ${(existingJobs[0] as Record<string, unknown>).job_number}`,
+                  body: classResult.summary,
+                  metadata: {
+                    job_id: existingJobs[0].id,
+                    job_number: (existingJobs[0] as Record<string, unknown>)
+                      .job_number,
+                    from: latestMsg.from,
+                  },
+                });
+              }
+            }
           }
         }
-        // irrelevant — skip, just log
 
-        // Log to email_scan_log
-        await supabase.from("email_scan_log").insert({
-          organization_id: organizationId,
-          gmail_message_id: email.id,
-          from_address: email.from,
-          subject: email.subject,
-          classification: classification.classification,
-          job_id: jobId,
-        });
+        // Upsert the thread metadata
+        await supabase.from("email_threads").upsert(
+          {
+            organization_id: organizationId,
+            gmail_thread_id: thread.id,
+            subject: thread.subject,
+            snippet: thread.snippet,
+            last_message_date: new Date(
+              thread.lastMessageDate,
+            ).toISOString(),
+            participants: thread.participants,
+            classification: isNew ? classification : undefined,
+            job_id: jobId || undefined,
+            message_count: thread.messages.length,
+            has_attachments: hasAttachments,
+            is_read: !isNew, // New threads start unread
+          },
+          { onConflict: "organization_id,gmail_thread_id" },
+        );
+
+        // Also log to email_scan_log for backwards compat
+        if (isNew) {
+          await supabase.from("email_scan_log").insert({
+            organization_id: organizationId,
+            gmail_message_id: latestMsg.id,
+            from_address: latestMsg.from,
+            subject: thread.subject,
+            classification,
+            job_id: jobId,
+          });
+        }
 
         results.push({
-          emailId: email.id,
-          from: email.from,
-          subject: email.subject,
-          classification: classification.classification,
+          threadId: thread.id,
+          subject: thread.subject,
+          status: isNew ? "new" : "updated",
+          classification: isNew ? classification : undefined,
           jobId,
         });
-      } catch (emailErr: unknown) {
+      } catch (threadErr: unknown) {
         const message =
-          emailErr instanceof Error ? emailErr.message : "Unknown error";
-        console.error(`Failed to process email ${email.id}:`, emailErr);
+          threadErr instanceof Error ? threadErr.message : "Unknown error";
+        console.error(`Failed to process thread ${thread.id}:`, threadErr);
         results.push({
-          emailId: email.id,
-          error: message,
+          threadId: thread.id,
+          subject: thread.subject,
+          status: "new",
+          classification: `error: ${message}`,
         });
       }
     }
 
+    const newCount = results.filter((r) => r.status === "new").length;
+    const updatedCount = results.filter((r) => r.status === "updated").length;
+
     return NextResponse.json({
       processed: results.length,
+      new: newCount,
+      updated: updatedCount,
       results,
     });
   } catch (err: unknown) {

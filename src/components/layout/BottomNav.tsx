@@ -10,6 +10,7 @@ import {
   Plus,
   DollarSign,
   Building2,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +21,7 @@ export function BottomNav() {
     [
       { name: "Home", href: "/", icon: Home },
       { name: "Jobs", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Work Orders", href: "/ops/work-orders", icon: Briefcase },
+      { name: "Inbox", href: "/inbox", icon: Mail },
       { name: "New Job", href: "/jobs/new", icon: Plus, isFab: true },
       { name: "Estimates", href: "/ops/quotes", icon: FileText },
       { name: "Properties", href: "/ops/properties", icon: Building2 },
