@@ -81,7 +81,7 @@ async function pollGmail() {
     };
 
     // Fetch recent threads (inbox + sent)
-    const threads = await fetchRecentThreads(tokens, 25);
+    const threads = await fetchRecentThreads(tokens, 100);
 
     if (!threads.length) {
       return NextResponse.json({ processed: 0, message: "No new threads" });
