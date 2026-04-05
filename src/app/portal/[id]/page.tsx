@@ -12,6 +12,7 @@ import {
   Calendar,
   ArrowRight,
   Loader2,
+  Camera,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -23,6 +24,8 @@ import { formatCurrency } from "@/lib/utils";
 import confetti from "canvas-confetti";
 import { BeforeAfterSlider } from "@/components/client-portal/BeforeAfterSlider";
 import { ProgressTracker } from "@/components/portal/ProgressTracker";
+import { QuoteCountdown } from "@/components/portal/QuoteCountdown";
+import { SchedulePicker } from "@/components/portal/SchedulePicker";
 
 interface PortalPageProps {
   params: {
@@ -45,6 +48,8 @@ type PortalJob = {
   deposit_required?: boolean;
   deposit_amount?: number;
   deposit_status?: string;
+  quote_expiry_date?: string;
+  preferred_schedule_date?: string;
   quote_line_items?: {
     description: string;
     quantity: number;
@@ -241,6 +246,11 @@ export default function PortalPage({ params }: PortalPageProps) {
         <div className="grid gap-6">
           {isQuote && (
             <GlassCard className="p-8 space-y-6">
+              {/* Quote Expiry Countdown */}
+              {job.status === "sent" && job.quote_expiry_date && (
+                <QuoteCountdown expiryDate={job.quote_expiry_date} />
+              )}
+
               <div className="text-center space-y-2">
                 <h2 className="text-3xl font-bold">
                   Proposal for {job.client?.name}
@@ -412,6 +422,16 @@ export default function PortalPage({ params }: PortalPageProps) {
                   </GlassCard>
                 )}
               </div>
+
+              {/* Schedule Picker — show when approved and deposit is handled */}
+              {(!job.deposit_required || job.deposit_status === "paid") && (
+                <GlassCard className="p-6 space-y-4" intensity="bright">
+                  <SchedulePicker
+                    jobId={job.id}
+                    preferredDate={job.preferred_schedule_date}
+                  />
+                </GlassCard>
+              )}
             </div>
           )}
 
@@ -501,6 +521,21 @@ export default function PortalPage({ params }: PortalPageProps) {
                         </p>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {/* Portfolio Link */}
+                {(isCompleted || isInvoiced || isPaid) && (
+                  <div className="mt-4">
+                    <a
+                      href={`/portfolio/${job.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-[#ff6b00] hover:underline font-semibold text-sm"
+                    >
+                      <Camera className="w-4 h-4" />
+                      View Your Project Portfolio
+                    </a>
                   </div>
                 )}
 

@@ -116,21 +116,26 @@ export async function scheduleJob(
   const { data: job } = await supabase
     .from("jobs")
     .select(
-      "id, job_number, property_address, organization_id, status, client_id, property_id, building_id, unit_id",
+      "id, job_number, property_address, organization_id, status, client_id, property_id, building_id, unit_id, preferred_schedule_date",
     )
     .eq("id", jobId)
     .single();
 
   if (!job) return { success: false, error: "Job not found" };
 
-  // Update job dates and status
+  // Use client's preferred date if start date not specified and client had a preference
+  const finalStartDate = startDate || (job as any).preferred_schedule_date || startDate;
+  const finalEndDate = endDate || finalStartDate;
+
+  // Update job dates and status, clear preferred date since it's now confirmed
   await supabase
     .from("jobs")
     .update({
-      start_date: startDate,
-      end_date: endDate,
+      start_date: finalStartDate,
+      end_date: finalEndDate,
       status: "scheduled",
-    })
+      preferred_schedule_date: null,
+    } as any)
     .eq("id", jobId);
 
   // Get task summary for calendar description
@@ -167,8 +172,8 @@ export async function scheduleJob(
         jobNumber: job.job_number || jobId.slice(0, 8),
         address: job.property_address || "TBD",
         taskSummary: taskSummary || "No tasks specified",
-        startDate,
-        endDate,
+        startDate: finalStartDate,
+        endDate: finalEndDate,
         subEmails,
       });
 
@@ -200,16 +205,16 @@ export async function scheduleJob(
         subcontractor_id: subId,
         status: "assigned",
         magic_link_token: uuidv4(),
-        scheduled_start: startDate,
-        scheduled_end: endDate,
+        scheduled_start: finalStartDate,
+        scheduled_end: finalEndDate,
         gcal_event_id: gcalEventId,
       });
     } else {
       await supabase
         .from("job_assignments")
         .update({
-          scheduled_start: startDate,
-          scheduled_end: endDate,
+          scheduled_start: finalStartDate,
+          scheduled_end: finalEndDate,
           gcal_event_id: gcalEventId,
         })
         .eq("id", existing.id);
@@ -217,8 +222,8 @@ export async function scheduleJob(
   }
 
   await logJobEvent(jobId, "job_scheduled", {
-    startDate,
-    endDate,
+    startDate: finalStartDate,
+    endDate: finalEndDate,
     subCount: subIds.length,
     gcalSynced: !!gcalEventId,
   });
@@ -244,7 +249,7 @@ export async function scheduleJob(
         job_id: jobId,
         property_address_or_unit: job.property_address || "TBD",
         status: "Scheduled",
-        due_at: endDate,
+        due_at: finalEndDate,
         ...(job.property_id && { property_id: job.property_id }),
         ...(job.building_id && { building_id: job.building_id }),
         ...(job.unit_id && { unit_id: job.unit_id }),

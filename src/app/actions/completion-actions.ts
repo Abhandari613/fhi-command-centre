@@ -256,6 +256,10 @@ export async function approveCompletion(
     body: JSON.stringify({ jobId: report.job_id }),
   }).catch((err) => console.error("Auto-invoice trigger failed:", err));
 
+  // Generate portfolio URL and include in completion email
+  const portfolioUrl = `${appUrl}/portfolio/${report.job_id}`;
+  await logJobEvent(report.job_id, "portfolio_created", { portfolioUrl });
+
   revalidatePath(`/ops/jobs/${report.job_id}`);
   revalidatePath(`/portal/${report.job_id}`);
   return { success: true };

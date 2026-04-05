@@ -18,6 +18,8 @@ import {
   FileText,
   Upload,
   ExternalLink,
+  GitCompareArrows,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import type {
@@ -206,7 +208,25 @@ export function CFODashboardClient({
             <div className="w-1.5 h-4 bg-primary rounded-full" />
             Finance Tools
           </h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+            <Link href="/ops/finance/reconciliation">
+              <GlassCard className="p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group h-full">
+                <GitCompareArrows className="w-5 h-5 text-primary mb-2" />
+                <p className="text-sm font-bold text-white">Reconciliation</p>
+                <p className="text-[10px] text-white/40 mt-0.5">
+                  Match receipts
+                </p>
+              </GlassCard>
+            </Link>
+            <Link href="/ops/finance/payouts">
+              <GlassCard className="p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group h-full">
+                <Users className="w-5 h-5 text-emerald-400 mb-2" />
+                <p className="text-sm font-bold text-white">Sub Payouts</p>
+                <p className="text-[10px] text-white/40 mt-0.5">
+                  Contractor pay
+                </p>
+              </GlassCard>
+            </Link>
             <Link href="/ops/finance/recurring">
               <GlassCard className="p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group h-full">
                 <RotateCcw className="w-5 h-5 text-purple-400 mb-2" />

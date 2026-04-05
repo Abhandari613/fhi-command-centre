@@ -18,6 +18,18 @@ export type DashboardJob = {
   quoted_total?: number;
 };
 
+/** Calculate expiry date = fromDate + 4 business days (skip weekends) */
+function calculateExpiryDate(fromDate: Date): Date {
+  const result = new Date(fromDate);
+  let businessDays = 0;
+  while (businessDays < 4) {
+    result.setDate(result.getDate() + 1);
+    const day = result.getDay();
+    if (day !== 0 && day !== 6) businessDays++;
+  }
+  return result;
+}
+
 const STATUS_ORDER = [
   "incoming",
   "draft",
@@ -109,6 +121,9 @@ export async function advanceJobStatus(jobId: string) {
 
   // Build update payload with timestamps for specific transitions
   const updatePayload: Record<string, any> = { status: nextStatus };
+  if (nextStatus === "sent") {
+    updatePayload.quote_expiry_date = calculateExpiryDate(new Date()).toISOString();
+  }
   if (nextStatus === "invoiced") {
     updatePayload.invoiced_at = new Date().toISOString();
   }
