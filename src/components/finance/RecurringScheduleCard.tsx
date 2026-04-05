@@ -2,7 +2,7 @@
 
 import { GlassCard } from "@/components/ui/GlassCard";
 import { AnimatedButton } from "@/components/ui/AnimatedButton";
-import { Calendar, Pause, Play, Loader2 } from "lucide-react";
+import { Calendar, Pause, Play, Loader2, Pencil } from "lucide-react";
 import { useState, useTransition } from "react";
 import { updateRecurringSchedule } from "@/app/actions/recurring-schedule-actions";
 import type { RecurringSchedule } from "@/app/actions/recurring-schedule-actions";
@@ -35,12 +35,14 @@ interface RecurringScheduleCardProps {
   schedule: RecurringSchedule;
   clientName?: string;
   onToggle?: () => void;
+  onEdit?: (schedule: RecurringSchedule) => void;
 }
 
 export function RecurringScheduleCard({
   schedule,
   clientName,
   onToggle,
+  onEdit,
 }: RecurringScheduleCardProps) {
   const [isPending, startTransition] = useTransition();
   const freq = FREQ_BADGE[schedule.frequency] || FREQ_BADGE.monthly;
@@ -99,24 +101,35 @@ export function RecurringScheduleCard({
         >
           {schedule.is_active ? "Active" : "Paused"}
         </span>
-        <AnimatedButton
-          variant="ghost"
-          size="sm"
-          onClick={handleToggle}
-          disabled={isPending}
-        >
-          {isPending ? (
-            <Loader2 className="w-3 h-3 animate-spin" />
-          ) : schedule.is_active ? (
-            <>
-              <Pause className="w-3 h-3" /> Pause
-            </>
-          ) : (
-            <>
-              <Play className="w-3 h-3" /> Resume
-            </>
+        <div className="flex items-center gap-1">
+          {onEdit && (
+            <AnimatedButton
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(schedule)}
+            >
+              <Pencil className="w-3 h-3" /> Edit
+            </AnimatedButton>
           )}
-        </AnimatedButton>
+          <AnimatedButton
+            variant="ghost"
+            size="sm"
+            onClick={handleToggle}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : schedule.is_active ? (
+              <>
+                <Pause className="w-3 h-3" /> Pause
+              </>
+            ) : (
+              <>
+                <Play className="w-3 h-3" /> Resume
+              </>
+            )}
+          </AnimatedButton>
+        </div>
       </div>
     </GlassCard>
   );

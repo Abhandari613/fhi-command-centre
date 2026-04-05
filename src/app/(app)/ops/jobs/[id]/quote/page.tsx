@@ -19,6 +19,7 @@ import {
   BookOpen,
   Plus,
   X,
+  Search,
 } from "lucide-react";
 import {
   getServicesCatalog,
@@ -55,6 +56,11 @@ export default function QuotePage() {
   const [downloading, setDownloading] = useState(false);
   const [showCatalog, setShowCatalog] = useState(false);
   const [catalog, setCatalog] = useState<ServiceItem[]>([]);
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogFilter, setCatalogFilter] = useState<string>("all");
+  const [selectedCatalogIds, setSelectedCatalogIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     loadData();
@@ -97,21 +103,43 @@ export default function QuotePage() {
       const data = await getServicesCatalog();
       setCatalog(data);
     }
+    setCatalogSearch("");
+    setCatalogFilter("all");
+    setSelectedCatalogIds(new Set());
     setShowCatalog(true);
   };
 
-  const addFromCatalog = (svc: ServiceItem) => {
+  const toggleCatalogItem = (svcId: string) => {
+    setSelectedCatalogIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(svcId)) next.delete(svcId);
+      else next.add(svcId);
+      return next;
+    });
+  };
+
+  const addSelectedFromCatalog = () => {
+    const selected = catalog.filter((s) => selectedCatalogIds.has(s.id));
     setItems((prev) => [
       ...prev,
-      {
+      ...selected.map((svc) => ({
         id: `catalog-${Date.now()}-${Math.random()}`,
         description: svc.task_name,
         quantity: svc.default_quantity,
         unit_price: svc.unit_price,
-      },
+      })),
     ]);
     setShowCatalog(false);
   };
+
+  const filteredCatalog = catalog.filter((svc) => {
+    const matchesSearch = svc.task_name
+      .toLowerCase()
+      .includes(catalogSearch.toLowerCase());
+    const matchesType =
+      catalogFilter === "all" || svc.item_type === catalogFilter;
+    return matchesSearch && matchesType;
+  });
 
   const saveAllPricing = async () => {
     for (const item of items) {
@@ -236,12 +264,12 @@ export default function QuotePage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md max-h-[70vh] overflow-y-auto"
+              className="w-full max-w-md max-h-[80vh] flex flex-col"
             >
-              <GlassCard intensity="panel" className="p-6 relative">
+              <GlassCard intensity="panel" className="p-6 relative flex flex-col overflow-hidden">
                 <button
                   onClick={() => setShowCatalog(false)}
-                  className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full"
+                  className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full z-10"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -249,35 +277,139 @@ export default function QuotePage() {
                   <BookOpen className="w-5 h-5 text-primary" /> Pick from
                   Catalog
                 </h2>
-                {catalog.length === 0 ? (
-                  <p className="text-sm text-white/40 text-center py-4">
-                    No services in catalog yet.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {catalog.map((svc) => (
-                      <button
-                        key={svc.id}
-                        onClick={() => addFromCatalog(svc)}
-                        className="w-full text-left p-3 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition-colors border border-white/5"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-white truncate">
-                              {svc.task_name}
-                            </p>
-                            {svc.description && (
-                              <p className="text-xs text-white/40 truncate">
-                                {svc.description}
-                              </p>
-                            )}
+
+                {/* Search */}
+                <input
+                  type="text"
+                  placeholder="Search services..."
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary/50 mb-3 placeholder:text-white/30"
+                />
+
+                {/* Type filter */}
+                <div className="flex gap-2 mb-4 flex-wrap">
+                  {(
+                    [
+                      { key: "all", label: "All", color: "text-white/60" },
+                      { key: "labor", label: "Labor", color: "text-blue-400" },
+                      {
+                        key: "material",
+                        label: "Material",
+                        color: "text-amber-400",
+                      },
+                      {
+                        key: "flat_rate",
+                        label: "Flat Rate",
+                        color: "text-emerald-400",
+                      },
+                    ] as const
+                  ).map((f) => (
+                    <button
+                      key={f.key}
+                      onClick={() => setCatalogFilter(f.key)}
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                        catalogFilter === f.key
+                          ? `${f.color} bg-white/10 border border-white/10`
+                          : "text-white/30 hover:text-white/60"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Items list */}
+                <div className="overflow-y-auto flex-1 space-y-2 min-h-0">
+                  {catalog.length === 0 ? (
+                    <p className="text-sm text-white/40 text-center py-4">
+                      No services in catalog yet.
+                    </p>
+                  ) : filteredCatalog.length === 0 ? (
+                    <p className="text-sm text-white/40 text-center py-4">
+                      No matching services.
+                    </p>
+                  ) : (
+                    filteredCatalog.map((svc) => {
+                      const isSelected = selectedCatalogIds.has(svc.id);
+                      const typeBadgeColor =
+                        svc.item_type === "labor"
+                          ? "bg-blue-500/20 text-blue-400"
+                          : svc.item_type === "material"
+                            ? "bg-amber-500/20 text-amber-400"
+                            : "bg-emerald-500/20 text-emerald-400";
+                      return (
+                        <button
+                          key={svc.id}
+                          onClick={() => toggleCatalogItem(svc.id)}
+                          className={`w-full text-left p-3 rounded-lg transition-colors border ${
+                            isSelected
+                              ? "bg-primary/10 border-primary/30"
+                              : "bg-white/[0.03] hover:bg-white/[0.06] border-white/5"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                isSelected
+                                  ? "bg-primary border-primary"
+                                  : "border-white/20"
+                              }`}
+                            >
+                              {isSelected && (
+                                <svg
+                                  className="w-3 h-3 text-white"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={3}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium text-white truncate">
+                                  {svc.task_name}
+                                </p>
+                                <span
+                                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${typeBadgeColor}`}
+                                >
+                                  {svc.item_type}
+                                </span>
+                              </div>
+                              {svc.description && (
+                                <p className="text-xs text-white/40 truncate">
+                                  {svc.description}
+                                </p>
+                              )}
+                            </div>
+                            <span className="text-sm font-bold text-emerald-400 ml-3 shrink-0">
+                              ${svc.unit_price.toFixed(2)}
+                            </span>
                           </div>
-                          <span className="text-sm font-bold text-emerald-400 ml-3">
-                            ${svc.unit_price.toFixed(2)}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Add Selected button */}
+                {selectedCatalogIds.size > 0 && (
+                  <div className="pt-4 border-t border-white/5 mt-4">
+                    <AnimatedButton
+                      variant="primary"
+                      className="w-full"
+                      onClick={addSelectedFromCatalog}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add {selectedCatalogIds.size} Selected
+                    </AnimatedButton>
                   </div>
                 )}
               </GlassCard>

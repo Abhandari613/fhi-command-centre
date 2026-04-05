@@ -7,6 +7,7 @@ import { RecurringScheduleCard } from "@/components/finance/RecurringScheduleCar
 import {
   getRecurringSchedules,
   createRecurringSchedule,
+  updateRecurringSchedule,
   type RecurringSchedule,
 } from "@/app/actions/recurring-schedule-actions";
 import { createClient } from "@/utils/supabase/client";
@@ -20,6 +21,8 @@ export default function RecurringPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [editingSchedule, setEditingSchedule] =
+    useState<RecurringSchedule | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Form state
@@ -62,6 +65,40 @@ export default function RecurringPage() {
         deposit_amount: formDeposit ? formDepositAmt : undefined,
       });
       setShowCreate(false);
+      resetForm();
+      await loadData();
+    });
+  };
+
+  const handleEdit = (schedule: RecurringSchedule) => {
+    setFormClientId(schedule.client_id);
+    setFormTitle(schedule.title);
+    setFormFreq(schedule.frequency);
+    setFormNextDue(schedule.next_due?.split("T")[0] || "");
+    setFormItems(
+      schedule.line_items?.length
+        ? schedule.line_items.map((li) => ({ ...li }))
+        : [{ description: "", quantity: 1, unit_price: 0 }],
+    );
+    setFormDeposit(schedule.deposit_required);
+    setFormDepositAmt(schedule.deposit_amount || 0);
+    setEditingSchedule(schedule);
+    setShowCreate(true);
+  };
+
+  const handleUpdate = () => {
+    if (!editingSchedule || !formTitle) return;
+    startTransition(async () => {
+      await updateRecurringSchedule(editingSchedule.id, {
+        title: formTitle,
+        frequency: formFreq,
+        next_due: formNextDue,
+        line_items: formItems.filter((li) => li.description.trim()),
+        deposit_required: formDeposit,
+        deposit_amount: formDeposit ? formDepositAmt : null,
+      });
+      setShowCreate(false);
+      setEditingSchedule(null);
       resetForm();
       await loadData();
     });
@@ -129,14 +166,18 @@ export default function RecurringPage() {
             >
               <GlassCard intensity="panel" className="p-6 relative">
                 <button
-                  onClick={() => setShowCreate(false)}
+                  onClick={() => {
+                    setShowCreate(false);
+                    setEditingSchedule(null);
+                    resetForm();
+                  }}
                   className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <RotateCcw className="w-5 h-5 text-primary" /> New Recurring
-                  Schedule
+                  <RotateCcw className="w-5 h-5 text-primary" />{" "}
+                  {editingSchedule ? "Edit Schedule" : "New Recurring Schedule"}
                 </h2>
                 <div className="space-y-3">
                   <div>
@@ -275,8 +316,12 @@ export default function RecurringPage() {
                   </div>
 
                   <AnimatedButton
-                    onClick={handleCreate}
-                    disabled={isPending || !formClientId || !formTitle}
+                    onClick={editingSchedule ? handleUpdate : handleCreate}
+                    disabled={
+                      isPending ||
+                      (!editingSchedule && !formClientId) ||
+                      !formTitle
+                    }
                     className="w-full"
                   >
                     {isPending ? (
@@ -284,7 +329,7 @@ export default function RecurringPage() {
                     ) : (
                       <Plus className="w-4 h-4" />
                     )}
-                    Create Schedule
+                    {editingSchedule ? "Save Changes" : "Create Schedule"}
                   </AnimatedButton>
                 </div>
               </GlassCard>
@@ -318,6 +363,7 @@ export default function RecurringPage() {
               schedule={s}
               clientName={clientMap[s.client_id]}
               onToggle={loadData}
+              onEdit={handleEdit}
             />
           ))}
         </motion.div>

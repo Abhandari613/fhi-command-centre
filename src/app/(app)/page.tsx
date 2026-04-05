@@ -38,6 +38,7 @@ import {
   Activity,
   BarChart3,
   ChevronRight,
+  Mic,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -750,7 +751,7 @@ export default function BloombergDashboard() {
           <h2 className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">
             Quick Actions
           </h2>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             <Link href="/ops/subs">
               <AnimatedButton
                 variant="secondary"
@@ -806,6 +807,20 @@ export default function BloombergDashboard() {
                 </div>
                 <span className="font-bold text-[9px] tracking-wide uppercase">
                   Properties
+                </span>
+              </AnimatedButton>
+            </Link>
+
+            <Link href="/ops/voice-quote">
+              <AnimatedButton
+                variant="secondary"
+                className="w-full h-16 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15"
+              >
+                <div className="w-7 h-7 rounded-sm bg-primary/15 flex items-center justify-center text-primary border border-primary/15">
+                  <Mic className="w-3.5 h-3.5" strokeWidth={2.5} />
+                </div>
+                <span className="font-bold text-[9px] tracking-wide uppercase">
+                  Voice Quote
                 </span>
               </AnimatedButton>
             </Link>

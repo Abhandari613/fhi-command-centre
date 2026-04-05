@@ -16,6 +16,7 @@ import {
   FileText,
   Printer,
   ChevronLeft,
+  Download,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -76,13 +77,41 @@ export default function StatementsPage() {
               </p>
             </div>
           </div>
-          <AnimatedButton
-            variant="secondary"
-            size="sm"
-            onClick={() => window.print()}
-          >
-            <Printer className="w-4 h-4" /> Print
-          </AnimatedButton>
+          <div className="flex items-center gap-2">
+            <AnimatedButton
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const csvRows = [
+                  ["Job #", "Address", "Status", "Invoiced", "Paid"],
+                  ...(selectedStatement.line_items || []).map((li) => [
+                    li.job_number,
+                    li.property_address || "",
+                    li.status,
+                    String(li.invoice_amount || 0),
+                    li.paid_at ? "Yes" : "No",
+                  ]),
+                ];
+                const csv = csvRows.map((r) => r.join(",")).join("\n");
+                const blob = new Blob([csv], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `Statement-${selectedStatement.client_name.replace(/\s+/g, "-")}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              <Download className="w-4 h-4" /> Export
+            </AnimatedButton>
+            <AnimatedButton
+              variant="secondary"
+              size="sm"
+              onClick={() => window.print()}
+            >
+              <Printer className="w-4 h-4" /> Print
+            </AnimatedButton>
+          </div>
         </header>
 
         <GlassCard

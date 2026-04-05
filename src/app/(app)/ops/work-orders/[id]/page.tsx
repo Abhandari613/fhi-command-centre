@@ -12,6 +12,7 @@ import {
   Printer,
   Send,
   ExternalLink,
+  MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -49,6 +50,8 @@ export default function WorkOrderDetailsPage() {
   const [photos, setPhotos] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [linkedJob, setLinkedJob] = useState<any>(null);
+  const [newNote, setNewNote] = useState("");
+  const [addingNote, setAddingNote] = useState(false);
 
   const fetchPhotos = useCallback(async () => {
     // Query by work_order_id (new) OR job_id=work_order.id (legacy workaround for existing records)
@@ -402,6 +405,111 @@ export default function WorkOrderDetailsPage() {
                 No transactions matched to this Work Order yet.
               </p>
             ) : null}
+          </GlassCard>
+        </motion.div>
+
+        {/* Notes / Comments */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+        >
+          <GlassCard className="p-6 space-y-4">
+            <h3 className="font-bold text-lg flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary opacity-70" />
+              Notes & Comments
+            </h3>
+
+            {/* Add note */}
+            <div className="flex gap-2">
+              <input
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="Add a note..."
+                className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary/50 placeholder:text-white/20"
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter" && newNote.trim()) {
+                    setAddingNote(true);
+                    await logJobEvent(id, "note_added", {
+                      note: newNote.trim(),
+                    });
+                    // Refresh events
+                    const { data: eventsData } = await supabase
+                      .from("job_events")
+                      .select("*")
+                      .eq("job_id", id)
+                      .order("created_at", { ascending: false });
+                    setEvents(eventsData || []);
+                    setNewNote("");
+                    setAddingNote(false);
+                  }
+                }}
+              />
+              <AnimatedButton
+                variant="secondary"
+                size="sm"
+                disabled={addingNote || !newNote.trim()}
+                onClick={async () => {
+                  if (!newNote.trim()) return;
+                  setAddingNote(true);
+                  await logJobEvent(id, "note_added", {
+                    note: newNote.trim(),
+                  });
+                  const { data: eventsData } = await supabase
+                    .from("job_events")
+                    .select("*")
+                    .eq("job_id", id)
+                    .order("created_at", { ascending: false });
+                  setEvents(eventsData || []);
+                  setNewNote("");
+                  setAddingNote(false);
+                }}
+              >
+                {addingNote ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </AnimatedButton>
+            </div>
+
+            {/* Event / note feed */}
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {events.length === 0 ? (
+                <p className="text-xs italic opacity-50 text-center py-2">
+                  No notes or activity yet.
+                </p>
+              ) : (
+                events.map((ev) => (
+                  <div
+                    key={ev.id}
+                    className="bg-white/[0.02] border border-white/5 rounded-lg p-3 text-sm"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary/60">
+                        {(ev.event_type || "event").replace(/_/g, " ")}
+                      </span>
+                      <span className="text-[10px] text-white/30 font-mono">
+                        {new Date(ev.created_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    {ev.metadata?.note && (
+                      <p className="text-white/70">{ev.metadata.note}</p>
+                    )}
+                    {!ev.metadata?.note && ev.metadata && (
+                      <p className="text-white/40 text-xs">
+                        {JSON.stringify(ev.metadata)}
+                      </p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </GlassCard>
         </motion.div>
 

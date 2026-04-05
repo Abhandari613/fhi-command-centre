@@ -174,14 +174,16 @@ export default function ReceivablesPage() {
         <div className="divide-y divide-white/5">
           {sorted.map((r) => (
             <div key={r.job_id}>
-              <div className="grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-white/[0.02] transition-colors">
+              <button
+                onClick={() =>
+                  setExpandedId(expandedId === r.job_id ? null : r.job_id)
+                }
+                className="w-full grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-white/[0.02] transition-colors text-left"
+              >
                 <div className="col-span-4 min-w-0">
-                  <Link
-                    href={`/ops/jobs/${r.job_id}`}
-                    className="text-sm font-medium text-white hover:text-primary truncate block"
-                  >
+                  <span className="text-sm font-medium text-white truncate block">
                     {r.client_name || "Unknown"}
-                  </Link>
+                  </span>
                   <span className="text-[10px] font-mono text-white/30">
                     {r.job_number}
                   </span>
@@ -202,10 +204,12 @@ export default function ReceivablesPage() {
                   </span>
                 </div>
                 <div className="col-span-1 flex justify-end">
-                  <button
-                    onClick={() => handleSendReminder(r.job_id)}
-                    disabled={sending === r.job_id}
-                    className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-white/30 hover:text-primary"
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSendReminder(r.job_id);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-white/30 hover:text-primary cursor-pointer"
                     title="Send reminder"
                   >
                     {sending === r.job_id ? (
@@ -213,9 +217,116 @@ export default function ReceivablesPage() {
                     ) : (
                       <Send className="w-3.5 h-3.5" />
                     )}
-                  </button>
+                  </span>
                 </div>
-              </div>
+              </button>
+
+              {/* Expanded row — reminder history & details */}
+              <AnimatePresence>
+                {expandedId === r.job_id && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-4 pt-1 space-y-3">
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="bg-white/[0.02] rounded-lg p-3 border border-white/5">
+                          <span className="text-[10px] uppercase text-white/30 font-bold block mb-1">
+                            Address
+                          </span>
+                          <span className="text-white/70">
+                            {r.property_address || "N/A"}
+                          </span>
+                        </div>
+                        <div className="bg-white/[0.02] rounded-lg p-3 border border-white/5">
+                          <span className="text-[10px] uppercase text-white/30 font-bold block mb-1">
+                            Invoiced
+                          </span>
+                          <span className="text-white/70">
+                            {new Date(r.invoiced_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Reminder history */}
+                      <div className="bg-white/[0.02] rounded-lg p-3 border border-white/5">
+                        <span className="text-[10px] uppercase text-white/30 font-bold block mb-2">
+                          Reminder History
+                        </span>
+                        {r.days_outstanding <= 7 ? (
+                          <p className="text-xs text-white/30 italic">
+                            Not yet due for reminders (under 7 days)
+                          </p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {r.days_outstanding > 7 && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="flex items-center gap-2">
+                                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                                  <span className="text-white/60">
+                                    Tier 1 — Friendly
+                                  </span>
+                                </span>
+                                <span className="text-white/30 font-mono">
+                                  Due
+                                </span>
+                              </div>
+                            )}
+                            {r.days_outstanding > 30 && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="flex items-center gap-2">
+                                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                                  <span className="text-white/60">
+                                    Tier 2 — Follow-up
+                                  </span>
+                                </span>
+                                <span className="text-white/30 font-mono">
+                                  Due
+                                </span>
+                              </div>
+                            )}
+                            {r.days_outstanding > 60 && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="flex items-center gap-2">
+                                  <span className="w-2 h-2 rounded-full bg-orange-400" />
+                                  <span className="text-white/60">
+                                    Tier 3 — Urgent
+                                  </span>
+                                </span>
+                                <span className="text-white/30 font-mono">
+                                  Due
+                                </span>
+                              </div>
+                            )}
+                            {r.days_outstanding > 90 && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="flex items-center gap-2">
+                                  <span className="w-2 h-2 rounded-full bg-red-400" />
+                                  <span className="text-white/60">
+                                    Tier 4 — Final Notice
+                                  </span>
+                                </span>
+                                <span className="text-white/30 font-mono">
+                                  Due
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <Link
+                        href={`/ops/jobs/${r.job_id}`}
+                        className="text-xs text-primary hover:underline inline-block"
+                      >
+                        View job details &rarr;
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ))}
         </div>

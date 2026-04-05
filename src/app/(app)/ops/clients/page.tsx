@@ -19,6 +19,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { createClientAction } from "@/app/actions/client-actions";
+import {
+  getCustomerFinancialSummaries,
+  type CustomerFinancialSummary,
+} from "@/app/actions/customer-statement-actions";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -38,11 +42,26 @@ export default function ClientsPage() {
   const [newClientPaymentTerms, setNewClientPaymentTerms] =
     useState("due_on_receipt");
   const [isPending, startTransition] = useTransition();
+  const [outstandingMap, setOutstandingMap] = useState<
+    Record<string, number>
+  >({});
 
   useEffect(() => {
     const fetchClients = async () => {
-      const { data } = await supabase.from("clients").select("*").order("name");
-      if (data) setClients(data);
+      const [clientRes, summaries] = await Promise.all([
+        supabase.from("clients").select("*").order("name"),
+        getCustomerFinancialSummaries(),
+      ]);
+      if (clientRes.data) setClients(clientRes.data);
+
+      // Build outstanding balance map
+      const map: Record<string, number> = {};
+      for (const s of summaries) {
+        if (s.total_outstanding > 0) {
+          map[s.client_id] = s.total_outstanding;
+        }
+      }
+      setOutstandingMap(map);
       setLoading(false);
     };
     fetchClients();
@@ -271,9 +290,24 @@ export default function ClientsPage() {
                         {(client.payment_terms as string).replace(/_/g, " ")}
                       </span>
                     )}
-                  <span className="text-xs text-zinc-500 hover:text-primary transition-colors flex items-center gap-1">
+                  {outstandingMap[client.id] > 0 && (
+                    <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">
+                      <DollarSign className="w-2.5 h-2.5 inline" />
+                      {new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: "USD",
+                        maximumFractionDigits: 0,
+                      }).format(outstandingMap[client.id])}{" "}
+                      owed
+                    </span>
+                  )}
+                  <Link
+                    href={`/ops/finance/statements?client=${client.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs text-zinc-500 hover:text-primary transition-colors flex items-center gap-1"
+                  >
                     <FileText className="w-3 h-3" /> Statement
-                  </span>
+                  </Link>
                   <span className="text-xs text-zinc-300 font-medium ml-auto">
                     View Details
                   </span>
