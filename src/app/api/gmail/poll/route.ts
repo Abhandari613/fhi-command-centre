@@ -124,8 +124,17 @@ async function pollGmail() {
       }
 
       try {
-        // Get the latest message for classification
-        const latestMsg = thread.messages[thread.messages.length - 1];
+        // Pick the best message for classification: prefer the latest inbound
+        // message (not from the org's own Gmail) since outbound messages from
+        // Frank would get classified as irrelevant.
+        const ownEmail = tokenRow.email || "";
+        const inboundMsgs = thread.messages.filter(
+          (m) => !m.from.includes(ownEmail) && !m.from.includes("aguirref04"),
+        );
+        const latestMsg =
+          inboundMsgs.length > 0
+            ? inboundMsgs[inboundMsgs.length - 1]
+            : thread.messages[thread.messages.length - 1];
         const hasAttachments = thread.messages.some(
           (m) => m.attachments.length > 0,
         );
