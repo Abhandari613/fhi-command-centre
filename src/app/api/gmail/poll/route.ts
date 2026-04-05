@@ -80,8 +80,11 @@ async function pollGmail() {
       refresh_token: tokenRow.refresh_token,
     };
 
-    // Fetch recent threads (inbox + sent)
-    const threads = await fetchRecentThreads(tokens, 100);
+    // Fetch recent threads (inbox + sent) — limit to last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const afterDate = `${thirtyDaysAgo.getFullYear()}/${String(thirtyDaysAgo.getMonth() + 1).padStart(2, "0")}/${String(thirtyDaysAgo.getDate()).padStart(2, "0")}`;
+    const threads = await fetchRecentThreads(tokens, 100, afterDate);
 
     if (!threads.length) {
       return NextResponse.json({ processed: 0, message: "No new threads" });
