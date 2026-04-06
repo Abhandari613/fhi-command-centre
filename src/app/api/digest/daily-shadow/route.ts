@@ -424,7 +424,7 @@ async function generateDailyShadowDigest() {
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     const { error } = await resend.emails.send({
-      from: "FHI Shadow Digest <digest@fhi.ca>",
+      from: "FHI Shadow Digest <onboarding@resend.dev>",
       to: recipient,
       subject: `FHI Shadow Digest — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
       html,
