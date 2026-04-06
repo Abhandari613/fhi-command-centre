@@ -123,6 +123,10 @@ export async function POST(req: NextRequest) {
               jobNumber: (job as any).job_number,
               address: (job as any).property_address || (job as any).address,
               magicLink,
+              organizationId: (job as any).organization_id,
+              startDate: (job as any).due_date || null,
+              endDate: (job as any).due_date || null,
+              taskSummary: taskDescriptions,
             }),
           });
         } catch (e) {

@@ -300,15 +300,22 @@ export async function scheduleJob(
             .single();
 
           if (assignment) {
-            // Send dispatch email
+            // Send dispatch email with calendar invite
+            const magicLinkUrl = `${appUrl}/s/${assignment.magic_link_token}`;
             fetch(`${appUrl}/api/sub-portal/dispatch-email`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                jobId,
-                subcontractorId: subId,
+                subName: sub.name,
+                subEmail: sub.email,
+                jobNumber: job.job_number || jobId.slice(0, 8),
+                address: job.property_address || "TBD",
+                magicLink: magicLinkUrl,
+                organizationId: job.organization_id,
+                startDate: finalStartDate,
+                endDate: finalEndDate,
+                taskSummary: taskSummary || "",
                 assignmentId: assignment.id,
-                token: assignment.magic_link_token,
               }),
             }).catch((err) =>
               console.error(`Dispatch email failed for sub ${subId}:`, err),

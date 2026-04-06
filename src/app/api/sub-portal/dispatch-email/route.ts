@@ -1,13 +1,24 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { isSilentMode } from "@/lib/services/silent-mode";
+import { generateJobICS } from "@/lib/services/ics";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
-    const { subName, subEmail, jobNumber, address, magicLink, organizationId } =
-      await req.json();
+    const {
+      subName,
+      subEmail,
+      jobNumber,
+      address,
+      magicLink,
+      organizationId,
+      startDate,
+      endDate,
+      taskSummary,
+      assignmentId,
+    } = await req.json();
 
     if (!subEmail || !magicLink) {
       return NextResponse.json(
@@ -22,10 +33,42 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, silentMode: true });
     }
 
+    // Build .ics attachment if we have dates
+    const attachments: { filename: string; content: Buffer }[] = [];
+    if (startDate) {
+      const icsContent = generateJobICS({
+        jobNumber: jobNumber || "JOB",
+        address: address || "TBD",
+        description: [
+          taskSummary || "",
+          magicLink ? `\nPortal: ${magicLink}` : "",
+        ].filter(Boolean).join("\n"),
+        startDate,
+        endDate: endDate || startDate,
+        uid: assignmentId ? `assignment-${assignmentId}@fhi.app` : undefined,
+      });
+      attachments.push({
+        filename: `FHI-${jobNumber || "job"}.ics`,
+        content: Buffer.from(icsContent, "utf-8"),
+      });
+    }
+
+    const scheduleLine = startDate
+      ? `<p style="margin: 0 0 8px; font-size: 14px; color: #666;">Scheduled</p>
+         <p style="margin: 0; font-size: 16px; color: #1a1a1a;">${new Date(startDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}${endDate && endDate !== startDate ? ` — ${new Date(endDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}` : ""}</p>`
+      : "";
+
+    const calendarNote = startDate
+      ? `<p style="font-size: 14px; color: #666; margin-top: 12px;">
+           📅 A calendar invite is attached — open it to add this job to your calendar.
+         </p>`
+      : "";
+
     const { error } = await resend.emails.send({
       from: "Frank's Home Improvement <onboarding@resend.dev>",
       to: subEmail,
       subject: `Job Assignment: ${jobNumber} — ${address}`,
+      attachments,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 8px;">
@@ -43,8 +86,11 @@ export async function POST(req: Request) {
             <p style="margin: 0 0 8px; font-size: 14px; color: #666;">Job Number</p>
             <p style="margin: 0 0 16px; font-size: 18px; font-weight: bold; color: #1a1a1a;">${jobNumber}</p>
             <p style="margin: 0 0 8px; font-size: 14px; color: #666;">Location</p>
-            <p style="margin: 0; font-size: 16px; color: #1a1a1a;">${address}</p>
+            <p style="margin: 0 0 16px; font-size: 16px; color: #1a1a1a;">${address}</p>
+            ${scheduleLine}
           </div>
+
+          ${calendarNote}
 
           <p style="font-size: 16px; color: #333;">
             Click the button below to view your tasks and upload completion photos:

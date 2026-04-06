@@ -8,6 +8,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import {
   MapPin,
   Calendar,
+  CalendarPlus,
   CheckCircle,
   Loader2,
   Camera,
@@ -172,6 +173,18 @@ export default function MagicLinkPage() {
             </div>
           </div>
         </GlassCard>
+
+        {/* Add to Calendar */}
+        {job.start_date && (
+          <a
+            href={`/api/sub-portal/calendar?token=${token}`}
+            download
+            className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2"
+          >
+            <CalendarPlus className="w-4 h-4" />
+            Add to Calendar
+          </a>
+        )}
 
         {/* Task list */}
         {tasks.length > 0 && (
