@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { isSilentMode } from "@/lib/services/silent-mode";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
-    const { subName, subEmail, jobNumber, address, magicLink } =
+    const { subName, subEmail, jobNumber, address, magicLink, organizationId } =
       await req.json();
 
     if (!subEmail || !magicLink) {
@@ -13,6 +14,12 @@ export async function POST(req: Request) {
         { error: "subEmail and magicLink are required" },
         { status: 400 },
       );
+    }
+
+    // Silent mode: skip sending but return success
+    if (organizationId && (await isSilentMode(organizationId))) {
+      console.log(`[SILENT MODE] Suppressed dispatch email to ${subEmail} for ${jobNumber}`);
+      return NextResponse.json({ success: true, silentMode: true });
     }
 
     const { error } = await resend.emails.send({

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { pushNotification } from "@/lib/services/notifications";
+import { isSilentMode } from "@/lib/services/silent-mode";
 
 function getAdminClient() {
   return createClient(
@@ -34,6 +35,9 @@ export async function POST() {
       const expiryDate = new Date(job.quote_expiry_date);
       const msRemaining = expiryDate.getTime() - now.getTime();
       const daysRemaining = msRemaining / (1000 * 60 * 60 * 24);
+
+      // Check silent mode for this org — still process logic but skip emails
+      const silent = await isSilentMode(job.organization_id);
 
       // Determine which reminder tier applies
       let tier: string | null = null;
@@ -93,7 +97,7 @@ export async function POST() {
         });
 
         // Email client
-        if (clientEmail && process.env.RESEND_API_KEY) {
+        if (clientEmail && process.env.RESEND_API_KEY && !silent) {
           try {
             const { Resend } = await import("resend");
             const resend = new Resend(process.env.RESEND_API_KEY);
@@ -133,7 +137,7 @@ export async function POST() {
           metadata: { job_id: job.id, job_number: job.job_number, tier },
         });
 
-        if (clientEmail && process.env.RESEND_API_KEY) {
+        if (clientEmail && process.env.RESEND_API_KEY && !silent) {
           try {
             const { Resend } = await import("resend");
             const resend = new Resend(process.env.RESEND_API_KEY);
@@ -173,7 +177,7 @@ export async function POST() {
           metadata: { job_id: job.id, job_number: job.job_number, tier },
         });
 
-        if (clientEmail && process.env.RESEND_API_KEY) {
+        if (clientEmail && process.env.RESEND_API_KEY && !silent) {
           try {
             const { Resend } = await import("resend");
             const resend = new Resend(process.env.RESEND_API_KEY);

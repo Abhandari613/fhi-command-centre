@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import jsPDF from "jspdf";
+import { isSilentMode } from "@/lib/services/silent-mode";
 
 export async function POST(req: Request) {
   try {
-    const { jobId, reportId, recipientEmails } = await req.json();
+    const { jobId, reportId, recipientEmails, organizationId } = await req.json();
 
     if (!jobId || !reportId || !recipientEmails?.length) {
       return NextResponse.json(
@@ -182,6 +183,12 @@ export async function POST(req: Request) {
         recipientEmails,
       );
       return NextResponse.json({ success: true, testMode: true });
+    }
+
+    // Silent mode: skip sending but return success
+    if (organizationId && (await isSilentMode(organizationId))) {
+      console.log(`[SILENT MODE] Suppressed completion report for job ${job.job_number}`);
+      return NextResponse.json({ success: true, silentMode: true });
     }
 
     const resend = new Resend(resendApiKey);

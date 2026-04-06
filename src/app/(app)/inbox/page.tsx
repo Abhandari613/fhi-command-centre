@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { NotificationBell } from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
+import { getUnconvertedDraftCount } from "@/app/actions/draft-review-actions";
 
 type EmailThread = {
   id: string;
@@ -69,6 +70,7 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState<string>("all");
+  const [draftCount, setDraftCount] = useState(0);
 
   const loadThreads = useCallback(async () => {
     try {
@@ -95,6 +97,7 @@ export default function InboxPage() {
 
   useEffect(() => {
     loadThreads();
+    getUnconvertedDraftCount().then(setDraftCount);
   }, [loadThreads]);
 
   // Default view: only work-related emails (hide irrelevant/spam)
@@ -137,6 +140,28 @@ export default function InboxPage() {
           <NotificationBell />
         </div>
       </div>
+
+      {/* Unconverted drafts badge (TRACK 1) */}
+      {draftCount > 0 && (
+        <Link href="/ops/work-orders">
+          <GlassCard className="p-3 flex items-center justify-between border-primary/20 hover:bg-white/[0.03] transition-colors">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <Star className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white">
+                  {draftCount} New Work — Review
+                </p>
+                <p className="text-[10px] text-gray-400">
+                  Email drafts ready to convert to jobs
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-500" />
+          </GlassCard>
+        </Link>
+      )}
 
       {/* Filters */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">

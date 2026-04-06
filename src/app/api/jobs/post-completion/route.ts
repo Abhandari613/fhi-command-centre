@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { pushNotification } from "@/lib/services/notifications";
+import { isSilentMode } from "@/lib/services/silent-mode";
 
 function getAdminClient() {
   return createClient(
@@ -39,7 +40,8 @@ export async function POST(req: NextRequest) {
         .eq("id", (job as any).client_id)
         .single();
 
-      if (client?.email && process.env.RESEND_API_KEY) {
+      const silent = await isSilentMode((job as any).organization_id);
+      if (client?.email && process.env.RESEND_API_KEY && !silent) {
         try {
           const { Resend } = await import("resend");
           const resend = new Resend(process.env.RESEND_API_KEY);

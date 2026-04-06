@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { isSilentMode } from "@/lib/services/silent-mode";
 
 function getAdminClient() {
   return createClient(
@@ -132,6 +133,12 @@ export async function sendStatusTransitionEmail(
       console.log(
         `[TEST MODE] Would send "${message.subject}" to ${client.email}`,
       );
+      return true;
+    }
+
+    // Silent mode: skip sending but return success
+    if ((job as any).organization_id && (await isSilentMode((job as any).organization_id))) {
+      console.log(`[SILENT MODE] Suppressed status email "${message.subject}" to ${client.email}`);
       return true;
     }
 

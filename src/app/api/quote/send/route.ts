@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { jsPDF } from "jspdf";
+import { isSilentMode } from "@/lib/services/silent-mode";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -104,13 +105,14 @@ function generatePdfBuffer(
 
 export async function POST(req: NextRequest) {
   try {
-    const { jobNumber, propertyAddress, items, total, billingEmail, coordinatorEmail } = (await req.json()) as {
+    const { jobNumber, propertyAddress, items, total, billingEmail, coordinatorEmail, organizationId } = (await req.json()) as {
       jobNumber: string;
       propertyAddress: string;
       items: LineItem[];
       total: number;
       billingEmail?: string;
       coordinatorEmail?: string;
+      organizationId?: string;
     };
 
     const pdfBuffer = generatePdfBuffer(
@@ -119,6 +121,12 @@ export async function POST(req: NextRequest) {
       items,
       total,
     );
+
+    // Silent mode: skip sending but return success
+    if (organizationId && (await isSilentMode(organizationId))) {
+      console.log(`[SILENT MODE] Suppressed quote email for ${jobNumber}`);
+      return NextResponse.json({ success: true, silentMode: true });
+    }
 
     // If Resend is not configured, fall back gracefully
     if (!process.env.RESEND_API_KEY) {

@@ -3,6 +3,22 @@
     {
       "path": "/api/gmail/poll",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/finance/auto-match",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/finance/reminder-drafts",
+      "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/schedule/auto-plan",
+      "schedule": "0 18 * * 0"
+    },
+    {
+      "path": "/api/digest/weekly",
+      "schedule": "0 18 * * 0"
     }
   ]
 }

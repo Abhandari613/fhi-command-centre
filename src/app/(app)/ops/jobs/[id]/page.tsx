@@ -4,11 +4,15 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { RescopeReviewPanel } from "@/components/jobs/RescopeReviewPanel";
+import { EmailLinkSection } from "@/components/jobs/EmailLinkSection";
+import { JobTimeline } from "@/components/jobs/JobTimeline";
+import { ScopeChangeModal } from "@/components/jobs/ScopeChangeModal";
 import { getJobWithAttachments } from "@/app/actions/scope-actions";
 import { advanceJobStatus } from "@/app/actions/dashboard-jobs-actions";
 import { getUnconfirmedTasks } from "@/app/actions/rescope-actions";
 import { getJobWorkOrders } from "@/app/actions/work-order-actions";
 import { uploadJobPhoto } from "@/app/actions/photo-actions";
+import { sharePhotosWithClient } from "@/app/actions/photo-share-actions";
 import {
   ArrowLeft,
   MapPin,
@@ -25,8 +29,12 @@ import {
   ClipboardCheck,
   Calendar,
   Briefcase,
+  Share2,
+  Clock,
+  PlusCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 const STATUS_LABELS: Record<string, string> = {
   incoming: "New Request",
@@ -69,6 +77,9 @@ export default function JobDetailPage() {
   const [advancing, setAdvancing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [rescopeLoading, setRescopeLoading] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [showScopeModal, setShowScopeModal] = useState(false);
+  const [sharingPhotos, setSharingPhotos] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -445,6 +456,30 @@ export default function JobDetailPage() {
         </GlassCard>
       )}
 
+      {/* Email History (TRACK 2 + TRACK 7) */}
+      <EmailLinkSection jobId={id} />
+
+      {/* Timeline toggle (TRACK 10) */}
+      <GlassCard className="p-4">
+        <button
+          onClick={() => setShowTimeline(!showTimeline)}
+          className="w-full flex items-center justify-between"
+        >
+          <h3 className="text-sm font-bold opacity-60 flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Job Timeline
+          </h3>
+          <ChevronRight
+            className={`w-4 h-4 text-gray-500 transition-transform ${showTimeline ? "rotate-90" : ""}`}
+          />
+        </button>
+        {showTimeline && (
+          <div className="mt-4">
+            <JobTimeline jobId={id} />
+          </div>
+        )}
+      </GlassCard>
+
       {/* Action links — context-aware per workflow stop */}
       <div className="space-y-3">
         {showScopeLink && (
@@ -492,7 +527,53 @@ export default function JobDetailPage() {
             Money on This Job
           </Link>
         )}
+
+        {/* Add scope change (TRACK 6) */}
+        {!["paid", "cancelled"].includes(job.status) && (
+          <button
+            onClick={() => setShowScopeModal(true)}
+            className="w-full bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px] border border-yellow-500/20"
+          >
+            <PlusCircle className="w-5 h-5" />
+            Add Scope Change
+          </button>
+        )}
+
+        {/* Share photos with client (TRACK 5) */}
+        {photos.length > 0 && (
+          <button
+            onClick={async () => {
+              setSharingPhotos(true);
+              const photoIds = photos.map((p: any) => p.id);
+              const result = await sharePhotosWithClient(id, photoIds);
+              if (result.success) {
+                toast.success("Photos shared with client!");
+              } else {
+                toast.error(result.error || "Failed to share");
+              }
+              setSharingPhotos(false);
+            }}
+            disabled={sharingPhotos}
+            className="w-full bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px] border border-violet-500/20 disabled:opacity-40"
+          >
+            {sharingPhotos ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Share2 className="w-5 h-5" />
+            )}
+            Share Photos with Neil
+          </button>
+        )}
       </div>
+
+      {/* Scope Change Modal (TRACK 6) */}
+      {showScopeModal && (
+        <ScopeChangeModal
+          jobId={id}
+          onClose={() => setShowScopeModal(false)}
+          onAdded={() => loadJob()}
+        />
+      )}
     </div>
   );
 }

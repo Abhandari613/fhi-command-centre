@@ -1,5 +1,6 @@
 import { AuroraBackground } from "@/components/layout/AuroraBackground";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { ReceiptCaptureFAB } from "@/components/receipts/ReceiptCaptureFAB";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export default function AppLayout({
       <main className="max-w-lg mx-auto px-4 pt-6 pb-32 min-h-screen relative z-10">
         {children}
       </main>
+      <ReceiptCaptureFAB />
       <BottomNav />
     </>
   );

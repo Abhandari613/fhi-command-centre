@@ -179,41 +179,107 @@ async function pollGmail() {
                 ? "rush"
                 : "standard";
 
-            const { data: job } = await supabase
-              .from("jobs")
+            // AUTOMATION 1: Create draft for confidence scoring + potential auto-creation
+            const { data: draft } = await supabase
+              .from("work_order_drafts")
               .insert({
                 organization_id: organizationId,
-                title: thread.subject || "Untitled Job",
-                description:
-                  classResult.summary || latestMsg.body?.substring(0, 500),
-                status: "incoming",
-                urgency,
-                property_address: classResult.property_address,
-                address: classResult.property_address,
-                source_email_subject: thread.subject,
-                source_email_body: latestMsg.body?.substring(0, 5000),
-              })
-              .select("id, job_number")
+                client_name: classResult.client_name || null,
+                property_address_or_unit: classResult.property_address || null,
+                trade_type: classResult.trade_type || null,
+                description: classResult.summary || latestMsg.body?.substring(0, 500),
+                raw_content: latestMsg.body?.substring(0, 5000),
+                source: latestMsg.from,
+                status: "pending",
+              } as any)
+              .select("id")
               .single();
 
-            if (job) {
-              jobId = job.id;
-              await pushNotification({
-                organizationId,
-                type: "new_job",
-                title:
-                  classification === "quote_request"
-                    ? `Quote request from ${classResult.client_name || latestMsg.from}`
-                    : `New work from ${classResult.client_name || latestMsg.from}`,
-                body: classResult.summary,
-                metadata: {
-                  job_id: job.id,
-                  job_number: (job as Record<string, unknown>).job_number,
-                  from: latestMsg.from,
-                  classification,
-                  urgency,
-                },
-              });
+            if (draft) {
+              try {
+                const { autoCreateJobFromDraft } = await import("@/app/actions/auto-job-actions");
+                const autoResult = await autoCreateJobFromDraft(draft.id, organizationId);
+
+                if (autoResult.action === "auto_created" && autoResult.jobId) {
+                  jobId = autoResult.jobId;
+                } else {
+                  // Confidence too low for auto-create — create job normally
+                  const { data: job } = await supabase
+                    .from("jobs")
+                    .insert({
+                      organization_id: organizationId,
+                      title: thread.subject || "Untitled Job",
+                      description: classResult.summary || latestMsg.body?.substring(0, 500),
+                      status: "incoming",
+                      urgency,
+                      property_address: classResult.property_address,
+                      address: classResult.property_address,
+                      source_email_subject: thread.subject,
+                      source_email_body: latestMsg.body?.substring(0, 5000),
+                    })
+                    .select("id, job_number")
+                    .single();
+
+                  if (job) {
+                    jobId = job.id;
+                    await supabase
+                      .from("work_order_drafts")
+                      .update({ converted_job_id: job.id, status: "converted" } as any)
+                      .eq("id", draft.id);
+
+                    await pushNotification({
+                      organizationId,
+                      type: "new_job",
+                      title: classification === "quote_request"
+                        ? `Quote request from ${classResult.client_name || latestMsg.from}`
+                        : `New work from ${classResult.client_name || latestMsg.from}`,
+                      body: `${classResult.summary || ""}${autoResult.confidence > 0 ? ` (confidence: ${autoResult.confidence}%)` : ""}`,
+                      metadata: {
+                        job_id: job.id,
+                        job_number: (job as Record<string, unknown>).job_number,
+                        from: latestMsg.from,
+                        classification,
+                        urgency,
+                        confidence: autoResult.confidence,
+                      },
+                    });
+                  }
+                }
+              } catch (autoErr) {
+                console.error("Auto-create failed, falling back:", autoErr);
+                const { data: job } = await supabase
+                  .from("jobs")
+                  .insert({
+                    organization_id: organizationId,
+                    title: thread.subject || "Untitled Job",
+                    description: classResult.summary || latestMsg.body?.substring(0, 500),
+                    status: "incoming",
+                    urgency,
+                    property_address: classResult.property_address,
+                    address: classResult.property_address,
+                    source_email_subject: thread.subject,
+                    source_email_body: latestMsg.body?.substring(0, 5000),
+                  })
+                  .select("id, job_number")
+                  .single();
+
+                if (job) {
+                  jobId = job.id;
+                  await pushNotification({
+                    organizationId,
+                    type: "new_job",
+                    title: `New work from ${classResult.client_name || latestMsg.from}`,
+                    body: classResult.summary,
+                    metadata: {
+                      job_id: job.id,
+                      job_number: (job as Record<string, unknown>).job_number,
+                      from: latestMsg.from,
+                      classification,
+                      urgency,
+                    },
+                  });
+                }
+              }
             }
           } else if (classification === "job_update") {
             if (

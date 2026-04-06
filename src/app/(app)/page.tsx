@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { ReceiptNudge } from "@/components/receipts/ReceiptNudge";
 
 const fmt = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -378,6 +379,13 @@ export default function BloombergDashboard() {
             </>
           )}
         </motion.section>
+
+        {/* Receipt Nudge (TRACK 0) */}
+        {!loading && (
+          <motion.section variants={item}>
+            <ReceiptNudge />
+          </motion.section>
+        )}
 
         {/* ── TWO-COLUMN LAYOUT ── Ops left, Finance right */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -751,7 +759,7 @@ export default function BloombergDashboard() {
           <h2 className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">
             Quick Actions
           </h2>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Link href="/ops/subs">
               <AnimatedButton
                 variant="secondary"
@@ -821,6 +829,20 @@ export default function BloombergDashboard() {
                 </div>
                 <span className="font-bold text-[9px] tracking-wide uppercase">
                   Voice Quote
+                </span>
+              </AnimatedButton>
+            </Link>
+
+            <Link href="/ops/explorer">
+              <AnimatedButton
+                variant="secondary"
+                className="w-full h-16 flex-col gap-1.5 rounded-sm relative overflow-hidden hover:border-primary/15"
+              >
+                <div className="w-7 h-7 rounded-sm bg-violet-500/10 flex items-center justify-center text-violet-400 border border-violet-500/15">
+                  <Activity className="w-3.5 h-3.5" strokeWidth={2.5} />
+                </div>
+                <span className="font-bold text-[9px] tracking-wide uppercase">
+                  How It Works
                 </span>
               </AnimatedButton>
             </Link>

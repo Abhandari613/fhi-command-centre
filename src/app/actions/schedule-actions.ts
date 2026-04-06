@@ -270,15 +270,65 @@ export async function scheduleJob(
     }
   }
 
-  // Auto-dispatch — if no subs were manually assigned, trigger AI matching
+  // AUTOMATION 3: Auto-dispatch to all assigned subs OR trigger AI matching
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   if (subIds.length === 0) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    // No subs manually assigned — trigger AI matching
     fetch(`${appUrl}/api/jobs/auto-dispatch`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ jobId }),
     }).catch((err) => console.error("Auto-dispatch trigger failed:", err));
+  } else {
+    // Subs manually assigned — send dispatch emails to each
+    for (const subId of subIds) {
+      try {
+        // Get sub details
+        const { data: sub } = await supabase
+          .from("subcontractors")
+          .select("id, name, email")
+          .eq("id", subId)
+          .single();
+
+        if (sub?.email) {
+          // Generate magic link token if not exists
+          const { data: assignment } = await supabase
+            .from("job_assignments")
+            .select("id, magic_link_token")
+            .eq("job_id", jobId)
+            .eq("subcontractor_id", subId)
+            .single();
+
+          if (assignment) {
+            // Send dispatch email
+            fetch(`${appUrl}/api/sub-portal/dispatch-email`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                jobId,
+                subcontractorId: subId,
+                assignmentId: assignment.id,
+                token: assignment.magic_link_token,
+              }),
+            }).catch((err) =>
+              console.error(`Dispatch email failed for sub ${subId}:`, err),
+            );
+
+            await logJobEvent(jobId, "sub_dispatched", {
+              subId,
+              subName: sub.name,
+              date: finalStartDate,
+            });
+          }
+        }
+      } catch (dispatchErr) {
+        console.error(`Failed to dispatch sub ${subId}:`, dispatchErr);
+      }
+    }
   }
+
+  // AUTOMATION 2: Trigger auto-schedule suggestion for related incoming jobs
+  // (handled separately via autoScheduleJob when jobs enter incoming status)
 
   revalidatePath(`/ops/jobs/${jobId}`);
   revalidatePath("/ops/schedule");

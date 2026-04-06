@@ -13,7 +13,20 @@ import {
   Briefcase,
   ChevronDown,
   ChevronUp,
+  Link2,
+  PlusCircle,
+  Search,
+  Send,
 } from "lucide-react";
+import { AnimatedButton } from "@/components/ui/AnimatedButton";
+import {
+  linkEmailToJob,
+  searchJobsForLinking,
+  suggestJobsForThread,
+} from "@/app/actions/email-link-actions";
+import { addScopeFromEmail } from "@/app/actions/scope-change-actions";
+import { replyToThread } from "@/app/actions/reply-from-job-actions";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -213,6 +226,15 @@ export default function ThreadPage() {
   const [thread, setThread] = useState<Thread | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showLinkPanel, setShowLinkPanel] = useState(false);
+  const [jobSearch, setJobSearch] = useState("");
+  const [jobResults, setJobResults] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [linkedJobId, setLinkedJobId] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [showReply, setShowReply] = useState(false);
 
   useEffect(() => {
     async function loadThread() {
@@ -328,6 +350,231 @@ export default function ThreadPage() {
           />
         ))}
       </div>
+
+      {/* Action bar — Link to Job, Reply, Add Scope */}
+      <GlassCard intensity="panel" className="p-4 space-y-3">
+        <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+          Actions
+        </h3>
+
+        <div className="flex gap-2 flex-wrap">
+          {/* Link to Job */}
+          <AnimatedButton
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              setShowLinkPanel(!showLinkPanel);
+              if (!showLinkPanel) {
+                // Load suggestions
+                const res = await fetch(`/api/inbox`);
+                const data = await res.json();
+                const emailThread = (data.threads || []).find(
+                  (t: any) => t.gmail_thread_id === threadId,
+                );
+                if (emailThread?.id) {
+                  const sug = await suggestJobsForThread(emailThread.id);
+                  setSuggestions(sug);
+                }
+              }
+            }}
+          >
+            <Link2 className="w-3.5 h-3.5" />
+            Link to Job
+          </AnimatedButton>
+
+          {/* Reply */}
+          <AnimatedButton
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowReply(!showReply)}
+          >
+            <Send className="w-3.5 h-3.5" />
+            Reply
+          </AnimatedButton>
+        </div>
+
+        {/* Link panel */}
+        <AnimatePresence>
+          {showLinkPanel && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-2 space-y-2">
+                {/* Suggestions */}
+                {suggestions.length > 0 && (
+                  <div>
+                    <span className="text-[10px] text-gray-500 font-bold uppercase">
+                      Suggested Jobs
+                    </span>
+                    {suggestions.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={async () => {
+                          const res = await fetch(`/api/inbox`);
+                          const data = await res.json();
+                          const emailThread = (data.threads || []).find(
+                            (t: any) => t.gmail_thread_id === threadId,
+                          );
+                          if (emailThread?.id) {
+                            const result = await linkEmailToJob(
+                              emailThread.id,
+                              s.id,
+                            );
+                            if (result.success) {
+                              toast.success("Linked to job!");
+                              setLinkedJobId(s.id);
+                              setShowLinkPanel(false);
+                            }
+                          }
+                        }}
+                        className="w-full text-left bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 mt-1 transition-colors"
+                      >
+                        <span className="text-xs font-mono text-primary">
+                          {s.job_number}
+                        </span>
+                        <span className="text-sm text-white ml-2">
+                          {s.title}
+                        </span>
+                        <span className="text-[10px] text-gray-500 ml-2">
+                          {s.confidence}% match
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder="Search jobs..."
+                    value={jobSearch}
+                    onChange={async (e) => {
+                      setJobSearch(e.target.value);
+                      if (e.target.value.length >= 2) {
+                        setSearching(true);
+                        const results = await searchJobsForLinking(
+                          e.target.value,
+                        );
+                        setJobResults(results);
+                        setSearching(false);
+                      } else {
+                        setJobResults([]);
+                      }
+                    }}
+                    className="w-full bg-black/30 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-primary/50 placeholder:text-white/20"
+                  />
+                </div>
+                {searching && (
+                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                )}
+                {jobResults.map((job) => (
+                  <button
+                    key={job.id}
+                    onClick={async () => {
+                      const res = await fetch(`/api/inbox`);
+                      const data = await res.json();
+                      const emailThread = (data.threads || []).find(
+                        (t: any) => t.gmail_thread_id === threadId,
+                      );
+                      if (emailThread?.id) {
+                        const result = await linkEmailToJob(
+                          emailThread.id,
+                          job.id,
+                        );
+                        if (result.success) {
+                          toast.success(`Linked to ${job.job_number}`);
+                          setLinkedJobId(job.id);
+                          setShowLinkPanel(false);
+                        }
+                      }
+                    }}
+                    className="w-full text-left bg-white/5 hover:bg-white/10 rounded-lg px-3 py-2 transition-colors"
+                  >
+                    <span className="text-xs font-mono text-primary">
+                      {job.job_number}
+                    </span>
+                    <span className="text-sm text-white ml-2">
+                      {job.property_address || job.title}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Reply box */}
+        <AnimatePresence>
+          {showReply && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-2 space-y-2">
+                <textarea
+                  value={replyBody}
+                  onChange={(e) => setReplyBody(e.target.value)}
+                  placeholder="Type your reply..."
+                  rows={4}
+                  className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary/50 placeholder:text-white/20 resize-none"
+                  autoFocus
+                />
+                <div className="flex justify-end gap-2">
+                  <AnimatedButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowReply(false);
+                      setReplyBody("");
+                    }}
+                  >
+                    Cancel
+                  </AnimatedButton>
+                  <AnimatedButton
+                    size="sm"
+                    disabled={!replyBody.trim() || sending}
+                    isLoading={sending}
+                    onClick={async () => {
+                      setSending(true);
+                      const result = await replyToThread(
+                        threadId,
+                        replyBody,
+                        linkedJobId || undefined,
+                      );
+                      if (result.success) {
+                        toast.success("Reply sent!");
+                        setReplyBody("");
+                        setShowReply(false);
+                      } else {
+                        toast.error(result.error || "Failed to send");
+                      }
+                      setSending(false);
+                    }}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Send Reply
+                  </AnimatedButton>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Linked job indicator */}
+        {linkedJobId && (
+          <div className="flex items-center gap-2 text-xs text-primary bg-primary/10 px-3 py-2 rounded-lg">
+            <Briefcase className="w-3.5 h-3.5" />
+            Linked to job — <a href={`/ops/jobs/${linkedJobId}`} className="underline">View Job</a>
+          </div>
+        )}
+      </GlassCard>
     </div>
   );
 }

@@ -20,9 +20,12 @@ import { AssignSubModal } from "@/components/work-orders/AssignSubModal";
 import { PaymentModal } from "@/components/payments/PaymentModal";
 import { PaymentList } from "@/components/payments/PaymentList";
 import { JobPhotoGallery } from "@/components/work-orders/JobPhotoGallery";
+import { TaskCompletionList } from "@/components/work-orders/TaskCompletionList";
 import { getWorkOrderLinkedJob } from "@/app/actions/work-order-actions";
+import { createInvoiceFromWorkOrder, sendInvoice } from "@/app/actions/invoice-from-wo-actions";
 import { motion } from "framer-motion";
-import { User, Phone } from "lucide-react";
+import { User, Phone, FileText, Receipt } from "lucide-react";
+import { toast } from "sonner";
 
 // TODO: Sync Supabase types to include work_orders/work_order_tasks tables
 type WorkOrderRow = any;
@@ -52,6 +55,8 @@ export default function WorkOrderDetailsPage() {
   const [linkedJob, setLinkedJob] = useState<any>(null);
   const [newNote, setNewNote] = useState("");
   const [addingNote, setAddingNote] = useState(false);
+  const [creatingInvoice, setCreatingInvoice] = useState(false);
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
   const fetchPhotos = useCallback(async () => {
     // Query by work_order_id (new) OR job_id=work_order.id (legacy workaround for existing records)
@@ -257,44 +262,30 @@ export default function WorkOrderDetailsPage() {
                 </AnimatedButton>
               </div>
 
-              <div className="space-y-3">
-                {workOrder.work_order_tasks.length === 0 ? (
-                  <div className="text-sm opacity-50 italic text-center py-2">
-                    No tasks defined.
-                  </div>
-                ) : (
-                  workOrder.work_order_tasks.map((item: WorkOrderTaskRow) => (
-                    <div
-                      key={item.id}
-                      className="flex justify-between items-start text-sm bg-white/5 p-3 rounded-xl border border-white/5"
-                    >
-                      <div className="flex-1">
-                        <div className="font-bold mb-1">
-                          {item.trade_type}{" "}
-                          <span className="text-[10px] uppercase ml-2 text-primary opacity-70">
-                            {item.status}
-                          </span>
-                        </div>
-                        {item.subcontractors ? (
-                          <div className="text-xs opacity-50 flex items-center gap-2">
-                            <User className="w-3 h-3" />
-                            {item.subcontractors.name}
-                            {item.subcontractors.phone &&
-                              `(${item.subcontractors.phone})`}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-rose-400 font-medium">
-                            Unassigned
-                          </div>
-                        )}
-                      </div>
-                      <div className="font-mono font-bold tabular-nums text-emerald-400">
-                        ${item.cost_estimate?.toFixed(2)}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+              {/* Task completion list with checkboxes (TRACK 3) */}
+              {workOrder.work_order_tasks.length === 0 ? (
+                <div className="text-sm opacity-50 italic text-center py-2">
+                  No tasks defined.
+                </div>
+              ) : (
+                <TaskCompletionList
+                  tasks={workOrder.work_order_tasks}
+                  workOrderId={id}
+                  onAllComplete={() => {
+                    toast.success("All tasks complete!", {
+                      description: "Ready to create invoice?",
+                    });
+                  }}
+                  onTaskToggle={async () => {
+                    // Refresh work order data
+                    const { data: refreshed } = await (supabase.from as any)("work_orders")
+                      .select("*, clients(*), work_order_tasks(*, subcontractors(*))")
+                      .eq("id", id)
+                      .single();
+                    if (refreshed) setWorkOrder(refreshed as unknown as WorkOrderWithDetails);
+                  }}
+                />
+              )}
             </div>
 
             {/* Total Estimate */}
@@ -349,6 +340,65 @@ export default function WorkOrderDetailsPage() {
               className="w-full shadow-[0_4px_20px_-2px_rgba(255,107,0,0.4)] bg-gradient-to-b from-primary to-[#e05e00] border-none"
             >
               <Loader2 className="animate-spin w-5 h-5 mr-2" /> Start Work
+            </AnimatedButton>
+          )}
+
+          {/* Create Invoice (TRACK 4) */}
+          {(workOrder.status === "Completed" ||
+            workOrder.work_order_tasks.every(
+              (t: any) => t.status === "Completed",
+            )) && (
+            <AnimatedButton
+              onClick={async () => {
+                setCreatingInvoice(true);
+                const result = await createInvoiceFromWorkOrder(id);
+                if (result.success && result.invoiceId) {
+                  setInvoiceId(result.invoiceId);
+                  toast.success("Invoice created!", {
+                    action: {
+                      label: "Send Now",
+                      onClick: async () => {
+                        const sendResult = await sendInvoice(result.invoiceId!);
+                        if (sendResult.success) {
+                          toast.success("Invoice sent!");
+                        } else {
+                          toast.error(sendResult.error || "Send failed");
+                        }
+                      },
+                    },
+                  });
+                } else {
+                  toast.error(result.error || "Failed to create invoice");
+                }
+                setCreatingInvoice(false);
+              }}
+              disabled={creatingInvoice}
+              isLoading={creatingInvoice}
+              size="lg"
+              className="w-full shadow-[0_0_20px_rgba(168,85,247,0.3)] bg-gradient-to-r from-purple-500 to-purple-600 border-none"
+            >
+              <Receipt className="w-5 h-5 mr-2" />
+              Create Invoice
+            </AnimatedButton>
+          )}
+
+          {/* Send Invoice if created */}
+          {invoiceId && (
+            <AnimatedButton
+              onClick={async () => {
+                const result = await sendInvoice(invoiceId!);
+                if (result.success) {
+                  toast.success("Invoice sent to client!");
+                  setInvoiceId(null);
+                } else {
+                  toast.error(result.error || "Send failed");
+                }
+              }}
+              size="lg"
+              className="w-full shadow-[0_0_20px_rgba(99,102,241,0.3)] bg-gradient-to-r from-indigo-500 to-indigo-600 border-none"
+            >
+              <Send className="w-5 h-5 mr-2" />
+              Send Invoice
             </AnimatedButton>
           )}
 
