@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { fetchRecentThreads } from "@/lib/services/gmail";
+import { fetchRecentThreads, sendGmailMessage } from "@/lib/services/gmail";
 import { pushNotification } from "@/lib/services/notifications";
 
 function getAdminClient() {
@@ -282,17 +282,121 @@ async function pollGmail() {
               }
             }
           } else if (classification === "payment_ready") {
-            // Cheque ready for pickup — notify Frank
+            // Cheque ready for pickup — fetch outstanding invoices and notify Frank
+
+            // 1. Get all unpaid invoices
+            const { data: unpaidInvoices } = await supabase
+              .from("job_invoices")
+              .select("invoice_number, total, status, sent_at, job_id")
+              .eq("organization_id", organizationId)
+              .in("status", ["sent", "overdue"])
+              .order("sent_at", { ascending: true });
+
+            // 2. Get job details for those invoices
+            const unpaidJobIds = (unpaidInvoices || []).map((inv: any) => inv.job_id).filter(Boolean);
+            let jobMap: Record<string, { job_number: string; title: string; property_address: string | null }> = {};
+            if (unpaidJobIds.length > 0) {
+              const { data: jobs } = await supabase
+                .from("jobs")
+                .select("id, job_number, title, property_address")
+                .in("id", unpaidJobIds);
+              for (const j of (jobs || []) as any[]) {
+                jobMap[j.id] = { job_number: j.job_number, title: j.title, property_address: j.property_address };
+              }
+            }
+
+            // 3. Build the outstanding invoices list
+            const invoiceLines = (unpaidInvoices || []).map((inv: any) => {
+              const job = jobMap[inv.job_id];
+              const sentDate = inv.sent_at ? new Date(inv.sent_at).toLocaleDateString("en-CA") : "—";
+              const daysOut = inv.sent_at ? Math.floor((Date.now() - new Date(inv.sent_at).getTime()) / 86400000) : 0;
+              return {
+                invoiceNumber: inv.invoice_number || "—",
+                total: Number(inv.total).toFixed(2),
+                jobNumber: job?.job_number || "—",
+                title: job?.title || "—",
+                property: job?.property_address || "—",
+                sentDate,
+                daysOut,
+                status: inv.status,
+              };
+            });
+
+            const totalOutstanding = (unpaidInvoices || []).reduce((sum: number, inv: any) => sum + Number(inv.total), 0);
+
+            // 4. Send Frank an email to himself with the outstanding list
+            const frankEmail = tokenRow.email || ownEmail;
+            if (frankEmail && invoiceLines.length > 0) {
+              const tableRows = invoiceLines.map((l) =>
+                `<tr>
+                  <td style="padding:6px 12px;border-bottom:1px solid #eee;">${l.invoiceNumber}</td>
+                  <td style="padding:6px 12px;border-bottom:1px solid #eee;">$${l.total}</td>
+                  <td style="padding:6px 12px;border-bottom:1px solid #eee;">${l.jobNumber}</td>
+                  <td style="padding:6px 12px;border-bottom:1px solid #eee;">${l.property}</td>
+                  <td style="padding:6px 12px;border-bottom:1px solid #eee;">${l.sentDate}</td>
+                  <td style="padding:6px 12px;border-bottom:1px solid #eee;">${l.daysOut}d</td>
+                  <td style="padding:6px 12px;border-bottom:1px solid #eee;color:${l.status === "overdue" ? "#dc2626" : "#f59e0b"};">${l.status}</td>
+                </tr>`
+              ).join("");
+
+              const emailBody = `
+                <div style="font-family:sans-serif;max-width:700px;margin:0 auto;">
+                  <h2 style="color:#ff6b00;margin-bottom:4px;">Cheque Ready for Pickup</h2>
+                  <p style="color:#666;margin-top:0;">${classResult.summary || `${classResult.client_name || latestMsg.from} says a cheque is ready for you.`}</p>
+
+                  <h3 style="margin-top:24px;margin-bottom:8px;">Your Outstanding Invoices (${invoiceLines.length})</h3>
+                  <p style="color:#666;margin-top:0;">Cross-compare these with the cheque stub when you pick up.</p>
+
+                  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                    <thead>
+                      <tr style="background:#f8f8f8;">
+                        <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #ddd;">Invoice #</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #ddd;">Amount</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #ddd;">Job</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #ddd;">Property</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #ddd;">Sent</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #ddd;">Age</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #ddd;">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>${tableRows}</tbody>
+                    <tfoot>
+                      <tr style="font-weight:bold;background:#f8f8f8;">
+                        <td style="padding:8px 12px;">Total</td>
+                        <td style="padding:8px 12px;">$${totalOutstanding.toFixed(2)}</td>
+                        <td colspan="5"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+
+                  <p style="color:#999;font-size:12px;margin-top:24px;">Sent automatically by FHI Command Centre</p>
+                </div>
+              `;
+
+              await sendGmailMessage(tokens, {
+                to: frankEmail,
+                subject: `Cheque ready — ${invoiceLines.length} outstanding invoices ($${totalOutstanding.toFixed(2)})`,
+                body: emailBody,
+              });
+            }
+
+            // 5. Also push in-app notification
+            const notifBody = invoiceLines.length > 0
+              ? `${classResult.summary || "Cheque ready for pickup"} — You have ${invoiceLines.length} outstanding invoices totalling $${totalOutstanding.toFixed(2)}`
+              : classResult.summary || `${classResult.client_name || latestMsg.from} says a cheque is ready`;
+
             await pushNotification({
               organizationId,
               type: "payment_ready",
               title: `Cheque ready for pickup`,
-              body: classResult.summary || `${classResult.client_name || latestMsg.from} says a cheque is ready`,
+              body: notifBody,
               metadata: {
                 from: latestMsg.from,
                 classification,
                 payment_amount: classResult.payment_amount || null,
-                property_address: classResult.property_address || null,
+                outstanding_count: invoiceLines.length,
+                outstanding_total: totalOutstanding,
+                outstanding_invoices: invoiceLines.slice(0, 20), // cap metadata size
               },
             });
           } else if (classification === "job_update") {
