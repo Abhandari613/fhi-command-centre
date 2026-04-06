@@ -104,11 +104,13 @@ function generatePdfBuffer(
 
 export async function POST(req: NextRequest) {
   try {
-    const { jobNumber, propertyAddress, items, total } = (await req.json()) as {
+    const { jobNumber, propertyAddress, items, total, billingEmail, coordinatorEmail } = (await req.json()) as {
       jobNumber: string;
       propertyAddress: string;
       items: LineItem[];
       total: number;
+      billingEmail?: string;
+      coordinatorEmail?: string;
     };
 
     const pdfBuffer = generatePdfBuffer(
@@ -127,12 +129,17 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Use provided contacts or fall back to defaults
+    const toEmail = billingEmail || "coady@allprofessionaltrades.com";
+    const ccEmail = coordinatorEmail || "neilh@allprofessionaltrades.com";
+    const toName = toEmail.split("@")[0];
+
     const { data, error } = await resend.emails.send({
       from: "Frank's Home Improvement <onboarding@resend.dev>",
-      to: ["coady@allprofessionaltrades.com"],
-      cc: ["neilh@allprofessionaltrades.com"],
+      to: [toEmail],
+      cc: [ccEmail],
       subject: `Quote ${jobNumber} - ${propertyAddress || "Job"}`,
-      text: `Hi Coady,\n\nPlease find the quote for ${jobNumber} attached.\n\nProperty: ${propertyAddress || "N/A"}\nTotal: $${total.toFixed(2)}\n\nThanks,\nFrank`,
+      text: `Hi ${toName},\n\nHere's the quote for ${jobNumber}.\n\nProperty: ${propertyAddress || "N/A"}\nTotal: $${total.toFixed(2)}\n\nLet me know if you have any questions.\n\nThanks,\nFrank`,
       attachments: [
         {
           filename: `Quote-${jobNumber}.pdf`,

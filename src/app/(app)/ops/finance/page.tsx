@@ -10,7 +10,7 @@ import {
 import { CFODashboardClient } from "./CFODashboardClient";
 
 export const metadata = {
-  title: "Finance Dashboard | Frank's Home Improvement",
+  title: "Money | Frank's Home Improvement",
 };
 
 export default async function FinancePage() {

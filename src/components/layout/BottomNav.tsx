@@ -23,9 +23,9 @@ export function BottomNav() {
       { name: "Jobs", href: "/dashboard", icon: LayoutDashboard },
       { name: "Inbox", href: "/inbox", icon: Mail },
       { name: "New Job", href: "/jobs/new", icon: Plus, isFab: true },
-      { name: "Estimates", href: "/ops/quotes", icon: FileText },
-      { name: "Properties", href: "/ops/properties", icon: Building2 },
-      { name: "Finance", href: "/ops/finance", icon: DollarSign },
+      { name: "Quotes", href: "/ops/quotes", icon: FileText },
+      { name: "Buildings", href: "/ops/properties", icon: Building2 },
+      { name: "Money", href: "/ops/finance", icon: DollarSign },
     ];
 
   return (

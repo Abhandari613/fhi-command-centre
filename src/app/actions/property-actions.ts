@@ -12,7 +12,10 @@ import type {
   Turnover,
   TurnoverTask,
   TurnoverTemplate,
+  TurnoverEvent,
+  TurnoverEventType,
   PropertyTurnoverSummary,
+  SubcontractorWorkload,
 } from "@/types/properties";
 
 // ── Schemas ──
@@ -43,7 +46,7 @@ const createUnitSchema = z.object({
   bathrooms: z.number().optional().nullable(),
   sqft: z.number().int().optional().nullable(),
   status: z
-    .enum(["occupied", "vacant", "turnover", "ready", "offline"])
+    .enum(["idle", "turnover", "ready", "offline"])
     .optional(),
   notes: z.string().optional().nullable(),
 });
@@ -86,6 +89,31 @@ async function getOrgId() {
     .single();
   if (!data?.organization_id) throw new Error("No org found");
   return { supabase, orgId: data.organization_id as string };
+}
+
+// ── Event Logging ──
+
+async function logTurnoverEvent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orgId: string,
+  turnoverId: string,
+  eventType: TurnoverEventType,
+  previousValue?: Record<string, unknown> | null,
+  newValue?: Record<string, unknown> | null,
+  metadata?: Record<string, unknown> | null,
+) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  await (supabase as any).from("turnover_events").insert({
+    turnover_id: turnoverId,
+    organization_id: orgId,
+    event_type: eventType,
+    previous_value: previousValue ?? null,
+    new_value: newValue ?? null,
+    metadata: metadata ?? null,
+    actor_id: user?.id ?? null,
+  });
 }
 
 // ── Properties ──
@@ -163,7 +191,7 @@ export async function getProperties() {
       units_in_turnover: propUnits.filter((u: any) => u.status === "turnover")
         .length,
       units_ready: propUnits.filter((u: any) => u.status === "ready").length,
-      units_vacant: propUnits.filter((u: any) => u.status === "vacant").length,
+      units_idle: propUnits.filter((u: any) => u.status === "idle").length,
       active_turnovers: propTurnovers.filter((t: any) => t.stage !== "ready")
         .length,
       completed_turnovers: propTurnovers.filter((t: any) => t.stage === "ready")
@@ -442,6 +470,15 @@ export async function createTurnover(input: unknown) {
         .update({ status: "turnover", updated_at: new Date().toISOString() })
         .eq("id", validated.unit_id);
 
+      // Log creation event
+      await logTurnoverEvent(supabase, orgId, turnover.id, "created", null, {
+        stage: turnoverData.stage ?? "notice",
+        unit_id: validated.unit_id,
+        move_in_date: validated.move_in_date ?? null,
+        target_ready_date: validated.target_ready_date ?? null,
+        estimated_cost: validated.estimated_cost ?? null,
+      });
+
       // If template provided, generate tasks
       if (template_id) {
         const { data: template } = await supabase
@@ -477,7 +514,7 @@ export async function createTurnover(input: unknown) {
 }
 
 export async function advanceTurnoverStage(turnoverId: string) {
-  const { supabase } = await getOrgId();
+  const { supabase, orgId } = await getOrgId();
   const stages = [
     "notice",
     "vacated",
@@ -501,20 +538,49 @@ export async function advanceTurnoverStage(turnoverId: string) {
   if (currentIdx >= stages.length - 1)
     return { success: false, error: "Already at final stage" };
 
+  const previousStage = turnover.stage;
   const nextStage = stages[currentIdx + 1];
+  const now = new Date().toISOString();
+
+  const updateData: Record<string, unknown> = {
+    stage: nextStage,
+    updated_at: now,
+  };
+
+  // If moved to ready, mark completion
+  if (nextStage === "ready") {
+    updateData.completed_at = now;
+    updateData.actual_ready_date = now.split("T")[0];
+  }
+
   const { error } = await supabase
     .from("turnovers")
-    .update({ stage: nextStage, updated_at: new Date().toISOString() })
+    .update(updateData)
     .eq("id", turnoverId);
 
   if (error) return { success: false, error: error.message };
 
-  // If moved to ready, update unit status
+  // Log stage change event
+  await logTurnoverEvent(
+    supabase,
+    orgId,
+    turnoverId,
+    "stage_changed",
+    { stage: previousStage },
+    { stage: nextStage },
+  );
+
+  // If moved to ready, update unit status and log completion
   if (nextStage === "ready") {
     await supabase
       .from("units")
-      .update({ status: "ready", updated_at: new Date().toISOString() })
+      .update({ status: "ready", updated_at: now })
       .eq("id", turnover.unit_id);
+
+    await logTurnoverEvent(supabase, orgId, turnoverId, "completed", null, {
+      completed_at: now,
+      previous_stage: previousStage,
+    });
   }
 
   revalidatePath("/ops/properties");
@@ -525,13 +591,34 @@ export async function assignTurnoverSub(
   turnoverId: string,
   subId: string | null,
 ) {
-  const { supabase } = await getOrgId();
+  const { supabase, orgId } = await getOrgId();
+
+  // Get current assignment for audit trail
+  const { data: turnover } = await supabase
+    .from("turnovers")
+    .select("assigned_to")
+    .eq("id", turnoverId)
+    .single();
+
+  const previousSubId = turnover?.assigned_to ?? null;
+
   const { error } = await supabase
     .from("turnovers")
     .update({ assigned_to: subId, updated_at: new Date().toISOString() })
     .eq("id", turnoverId);
 
   if (error) return { success: false, error: error.message };
+
+  // Log assignment event
+  await logTurnoverEvent(
+    supabase,
+    orgId,
+    turnoverId,
+    subId ? "assigned" : "unassigned",
+    { assigned_to: previousSubId },
+    { assigned_to: subId },
+  );
+
   revalidatePath("/ops/properties");
   return { success: true };
 }
@@ -562,7 +649,17 @@ export async function getTurnoverTasks(turnoverId: string) {
 }
 
 export async function updateTurnoverTaskStatus(taskId: string, status: string) {
-  const { supabase } = await getOrgId();
+  const { supabase, orgId } = await getOrgId();
+
+  // Get task + turnover info for audit trail
+  const { data: task } = await supabase
+    .from("turnover_tasks")
+    .select("turnover_id, description, status")
+    .eq("id", taskId)
+    .single();
+
+  const previousStatus = task?.status ?? null;
+
   const updates: any = {
     status,
     ...(status === "completed"
@@ -575,6 +672,26 @@ export async function updateTurnoverTaskStatus(taskId: string, status: string) {
     .eq("id", taskId);
 
   if (error) return { success: false, error: error.message };
+
+  // Log task event
+  if (task?.turnover_id) {
+    const eventType =
+      status === "completed"
+        ? "task_completed"
+        : status === "skipped"
+          ? "task_skipped"
+          : ("task_added" as TurnoverEventType);
+
+    await logTurnoverEvent(
+      supabase,
+      orgId,
+      task.turnover_id,
+      eventType,
+      { status: previousStatus },
+      { status, task_description: task.description },
+    );
+  }
+
   revalidatePath("/ops/properties");
   return { success: true };
 }
@@ -787,6 +904,12 @@ export async function createJobFromTurnover(
     .update({ job_id: job.id, updated_at: new Date().toISOString() })
     .eq("id", turnoverId);
 
+  // Log job linked event
+  await logTurnoverEvent(supabase, orgId, turnoverId, "job_linked", null, {
+    job_id: job.id,
+    job_number: (job as any).job_number,
+  });
+
   // Copy turnover tasks as job_tasks if any exist
   const { data: turnoverTasks } = await supabase
     .from("turnover_tasks")
@@ -828,4 +951,207 @@ export async function deleteTurnoverTemplate(templateId: string) {
   if (error) return { success: false, error: error.message };
   revalidatePath("/ops/properties/templates");
   return { success: true };
+}
+
+// ── Turnover History & Timeline ──
+
+export async function getTurnoverHistory(unitId: string) {
+  const { supabase } = await getOrgId();
+
+  const { data, error } = await supabase
+    .from("turnovers")
+    .select("*")
+    .eq("unit_id", unitId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [] as Turnover[];
+
+  // Enrich with task counts
+  const turnoverIds = data.map((t: any) => t.id);
+  const { data: tasks } = turnoverIds.length
+    ? await supabase
+        .from("turnover_tasks")
+        .select("turnover_id, status")
+        .in("turnover_id", turnoverIds)
+    : { data: [] };
+
+  const taskCounts: Record<string, { total: number; completed: number }> = {};
+  for (const t of tasks ?? []) {
+    if (!taskCounts[t.turnover_id])
+      taskCounts[t.turnover_id] = { total: 0, completed: 0 };
+    taskCounts[t.turnover_id].total++;
+    if (t.status === "completed") taskCounts[t.turnover_id].completed++;
+  }
+
+  // Enrich with sub names
+  const subIds = data.map((t: any) => t.assigned_to).filter(Boolean);
+  const { data: subs } = subIds.length
+    ? await supabase.from("subcontractors").select("id, name").in("id", subIds)
+    : { data: [] };
+  const subMap = Object.fromEntries((subs ?? []).map((s: any) => [s.id, s]));
+
+  return data.map((t: any) => ({
+    ...t,
+    task_count: taskCounts[t.id]?.total ?? 0,
+    tasks_completed: taskCounts[t.id]?.completed ?? 0,
+    assigned_name: t.assigned_to ? subMap[t.assigned_to]?.name : null,
+    duration_days: t.completed_at
+      ? Math.floor(
+          (new Date(t.completed_at).getTime() -
+            new Date(t.created_at).getTime()) /
+            86400000,
+        )
+      : null,
+  })) as Turnover[];
+}
+
+export async function getTurnoverTimeline(turnoverId: string) {
+  const { supabase } = await getOrgId();
+
+  const { data, error } = await (supabase as any)
+    .from("turnover_events")
+    .select("*")
+    .eq("turnover_id", turnoverId)
+    .order("created_at", { ascending: true });
+
+  if (error) return [] as TurnoverEvent[];
+  return (data ?? []) as TurnoverEvent[];
+}
+
+// ── Workload Queries ──
+
+export async function getSubcontractorWorkload() {
+  const { supabase, orgId } = await getOrgId();
+
+  // Get all active subs
+  const { data: subs } = await supabase
+    .from("subcontractors")
+    .select("id, name, max_concurrent_tasks")
+    .eq("organization_id", orgId)
+    .eq("status", "active");
+
+  if (!subs?.length) return [] as SubcontractorWorkload[];
+
+  // Get active task counts per sub (tasks on active turnovers only)
+  const { data: activeTasks } = await supabase
+    .from("turnover_tasks")
+    .select("assigned_to, status, turnover_id")
+    .eq("organization_id", orgId)
+    .not("assigned_to", "is", null);
+
+  // Get active turnover IDs
+  const { data: activeTurnovers } = await supabase
+    .from("turnovers")
+    .select("id")
+    .eq("organization_id", orgId)
+    .eq("is_active", true);
+
+  const activeTurnoverIds = new Set(
+    (activeTurnovers ?? []).map((t: any) => t.id),
+  );
+
+  // Count tasks per sub on active turnovers only
+  const taskCounts: Record<string, { active: number; completed: number }> = {};
+  for (const t of activeTasks ?? []) {
+    if (!t.assigned_to) continue;
+    if (!activeTurnoverIds.has(t.turnover_id)) continue;
+    if (!taskCounts[t.assigned_to])
+      taskCounts[t.assigned_to] = { active: 0, completed: 0 };
+    if (t.status === "pending" || t.status === "in_progress") {
+      taskCounts[t.assigned_to].active++;
+    } else if (t.status === "completed") {
+      taskCounts[t.assigned_to].completed++;
+    }
+  }
+
+  return subs.map((s: any) => {
+    const counts = taskCounts[s.id] ?? { active: 0, completed: 0 };
+    const maxTasks = s.max_concurrent_tasks ?? 5;
+    let capacityStatus: "available" | "at_capacity" | "overloaded" = "available";
+    if (counts.active > maxTasks) capacityStatus = "overloaded";
+    else if (counts.active === maxTasks) capacityStatus = "at_capacity";
+
+    return {
+      subcontractor_id: s.id,
+      subcontractor_name: s.name,
+      organization_id: orgId,
+      max_concurrent_tasks: maxTasks,
+      active_task_count: counts.active,
+      completed_task_count: counts.completed,
+      capacity_status: capacityStatus,
+    };
+  }) as SubcontractorWorkload[];
+}
+
+export async function getPropertyWorkload(propertyId: string) {
+  const { supabase } = await getOrgId();
+
+  // Get total units for this property
+  const { data: buildings } = await supabase
+    .from("buildings")
+    .select("id")
+    .eq("property_id", propertyId);
+
+  const buildingIds = (buildings ?? []).map((b: any) => b.id);
+  if (!buildingIds.length) return { totalUnits: 0, activeTurnovers: 0, threshold: 3, isOverloaded: false };
+
+  const { data: units } = await supabase
+    .from("units")
+    .select("id, status")
+    .in("building_id", buildingIds);
+
+  const totalUnits = (units ?? []).length;
+  const activeTurnovers = (units ?? []).filter(
+    (u: any) => u.status === "turnover",
+  ).length;
+  const threshold = Math.max(Math.floor(totalUnits * 0.15), 3);
+
+  return {
+    totalUnits,
+    activeTurnovers,
+    threshold,
+    isOverloaded: activeTurnovers > threshold,
+  };
+}
+
+// ── Unit Detail ──
+
+export async function getUnit(unitId: string) {
+  const { supabase } = await getOrgId();
+
+  const { data, error } = await supabase
+    .from("units")
+    .select("*")
+    .eq("id", unitId)
+    .single();
+
+  if (error || !data) return null;
+
+  // Get building and property info
+  const { data: building } = await supabase
+    .from("buildings")
+    .select("id, name, code, property_id")
+    .eq("id", data.building_id)
+    .single();
+
+  const { data: property } = building
+    ? await supabase
+        .from("properties")
+        .select("id, name, address")
+        .eq("id", building.property_id)
+        .single()
+    : { data: null };
+
+  return {
+    ...data,
+    building_name: building?.name,
+    building_code: building?.code,
+    property_id: property?.id,
+    property_name: property?.name,
+    property_address: property?.address,
+  } as Unit & {
+    building_code?: string;
+    property_id?: string;
+    property_address?: string;
+  };
 }

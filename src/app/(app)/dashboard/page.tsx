@@ -31,47 +31,52 @@ const STATUS_CONFIG: Record<
   { label: string; icon: React.ReactNode; color: string }
 > = {
   incoming: {
-    label: "Incoming",
+    label: "New Requests",
     icon: <Inbox className="w-5 h-5" />,
     color: "text-blue-400",
   },
+  site_visit: {
+    label: "Go Look",
+    icon: <ClipboardCheck className="w-5 h-5" />,
+    color: "text-violet-400",
+  },
   draft: {
-    label: "Draft",
+    label: "Scope It Out",
     icon: <FileText className="w-5 h-5" />,
     color: "text-gray-400",
   },
   quoted: {
-    label: "Quoted",
+    label: "Priced Up",
     icon: <FileText className="w-5 h-5" />,
     color: "text-yellow-400",
   },
   sent: {
-    label: "Sent",
+    label: "Quote Sent",
     icon: <Send className="w-5 h-5" />,
     color: "text-indigo-400",
   },
   approved: {
-    label: "Approved",
+    label: "Got the Go-Ahead",
     icon: <ThumbsUp className="w-5 h-5" />,
     color: "text-emerald-400",
   },
   scheduled: {
-    label: "Scheduled",
+    label: "Booked In",
     icon: <Calendar className="w-5 h-5" />,
     color: "text-sky-400",
   },
   in_progress: {
-    label: "In Progress",
+    label: "On the Job",
     icon: <Hammer className="w-5 h-5" />,
     color: "text-orange-400",
   },
   completed: {
-    label: "Completed",
+    label: "Work Done",
     icon: <ClipboardCheck className="w-5 h-5" />,
     color: "text-cyan-400",
   },
   invoiced: {
-    label: "Invoiced",
+    label: "Invoice Sent",
     icon: <Receipt className="w-5 h-5" />,
     color: "text-purple-400",
   },
@@ -84,6 +89,7 @@ const STATUS_CONFIG: Record<
 
 const STATUS_ORDER = [
   "incoming",
+  "site_visit",
   "draft",
   "quoted",
   "sent",

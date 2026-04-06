@@ -14,29 +14,34 @@ import {
   getTurnovers,
   advanceTurnoverStage,
   createJobFromTurnover,
+  getPropertyWorkload,
+  getSubcontractorWorkload,
 } from "@/app/actions/property-actions";
 import { MakeReadyBoard } from "@/components/properties/MakeReadyBoard";
 import { AddBuildingModal } from "@/components/properties/AddBuildingModal";
 import { AddUnitModal } from "@/components/properties/AddUnitModal";
 import { StartTurnoverModal } from "@/components/properties/StartTurnoverModal";
-import type { Property, Building, Unit, Turnover } from "@/types/properties";
+import type { Property, Building, Unit, Turnover, SubcontractorWorkload } from "@/types/properties";
 import {
+  AlertTriangle,
   ArrowLeft,
   Building2,
   ChevronDown,
   ChevronRight,
+  Clock,
   DoorOpen,
+  History,
   Loader2,
   MapPin,
   Plus,
   RotateCw,
 } from "lucide-react";
+import { countByCriticalPath } from "@/lib/turnover-critical-path";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
 const UNIT_STATUS_COLORS: Record<string, string> = {
-  occupied: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  vacant: "bg-red-500/20 text-red-400 border-red-500/30",
+  idle: "bg-white/[0.02] text-white/15 border-white/[0.04]",
   turnover: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   ready: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   offline: "bg-gray-500/20 text-gray-400 border-gray-500/30",
@@ -57,6 +62,13 @@ export default function PropertyDetailPage() {
   const [loading, setLoading] = useState(true);
   const [expandedBuilding, setExpandedBuilding] = useState<string | null>(null);
   const [view, setView] = useState<"buildings" | "board">("board");
+  const [workload, setWorkload] = useState<{
+    totalUnits: number;
+    activeTurnovers: number;
+    threshold: number;
+    isOverloaded: boolean;
+  } | null>(null);
+  const [subWorkloads, setSubWorkloads] = useState<SubcontractorWorkload[]>([]);
 
   // Modal state
   const [showAddBuilding, setShowAddBuilding] = useState(false);
@@ -64,14 +76,18 @@ export default function PropertyDetailPage() {
   const [showStartTurnover, setShowStartTurnover] = useState<Unit | null>(null);
 
   const loadData = useCallback(async () => {
-    const [prop, bldgs, turns] = await Promise.all([
+    const [prop, bldgs, turns, wl, sw] = await Promise.all([
       getProperty(propertyId),
       getBuildings(propertyId),
       getTurnovers({ propertyId }),
+      getPropertyWorkload(propertyId),
+      getSubcontractorWorkload(),
     ]);
     setProperty(prop);
     setBuildings(bldgs);
     setTurnovers(turns);
+    setWorkload(wl);
+    setSubWorkloads(sw);
 
     // Load units for all buildings
     const unitsMap: Record<string, Unit[]> = {};
@@ -170,41 +186,57 @@ export default function PropertyDetailPage() {
             </div>
           </div>
 
+          {/* Workload warning banner */}
+          {workload?.isOverloaded && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span className="text-xs font-bold">
+                {workload.activeTurnovers} units turning — high workload
+              </span>
+            </div>
+          )}
+
           {/* Stats strip */}
-          <div className="grid grid-cols-4 gap-2">
-            <GlassCard intensity="panel" className="p-2 text-center">
-              <span className="text-lg font-black tabular-nums font-mono text-white/80">
-                {buildings.length}
-              </span>
-              <p className="text-[7px] uppercase tracking-[0.15em] text-white/25 font-bold">
-                Buildings
-              </p>
-            </GlassCard>
-            <GlassCard intensity="panel" className="p-2 text-center">
-              <span className="text-lg font-black tabular-nums font-mono text-white/80">
-                {totalUnits}
-              </span>
-              <p className="text-[7px] uppercase tracking-[0.15em] text-white/25 font-bold">
-                Units
-              </p>
-            </GlassCard>
-            <GlassCard intensity="panel" className="p-2 text-center">
-              <span className="text-lg font-black tabular-nums font-mono text-amber-400">
-                {turningUnits}
-              </span>
-              <p className="text-[7px] uppercase tracking-[0.15em] text-white/25 font-bold">
-                Turning
-              </p>
-            </GlassCard>
-            <GlassCard intensity="panel" className="p-2 text-center">
-              <span className="text-lg font-black tabular-nums font-mono text-emerald-400">
-                {turnovers.filter((t) => t.stage === "ready").length}
-              </span>
-              <p className="text-[7px] uppercase tracking-[0.15em] text-white/25 font-bold">
-                Ready
-              </p>
-            </GlassCard>
-          </div>
+          {(() => {
+            const criticalCounts = countByCriticalPath(turnovers);
+            const atRiskCount = criticalCounts.at_risk + criticalCounts.behind + criticalCounts.blocked;
+            return (
+              <div className="grid grid-cols-4 gap-2">
+                <GlassCard intensity="panel" className="p-2 text-center">
+                  <span className="text-lg font-black tabular-nums font-mono text-amber-400">
+                    {turningUnits}
+                  </span>
+                  <p className="text-[7px] uppercase tracking-[0.15em] text-white/25 font-bold">
+                    Turning
+                  </p>
+                </GlassCard>
+                <GlassCard intensity="panel" className="p-2 text-center">
+                  <span className="text-lg font-black tabular-nums font-mono text-emerald-400">
+                    {turnovers.filter((t) => t.stage === "ready").length}
+                  </span>
+                  <p className="text-[7px] uppercase tracking-[0.15em] text-white/25 font-bold">
+                    Ready
+                  </p>
+                </GlassCard>
+                <GlassCard intensity="panel" className="p-2 text-center">
+                  <span className={`text-lg font-black tabular-nums font-mono ${atRiskCount > 0 ? "text-red-400" : "text-white/30"}`}>
+                    {atRiskCount}
+                  </span>
+                  <p className="text-[7px] uppercase tracking-[0.15em] text-white/25 font-bold">
+                    At Risk
+                  </p>
+                </GlassCard>
+                <GlassCard intensity="panel" className="p-2 text-center">
+                  <span className="text-lg font-black tabular-nums font-mono text-white/80">
+                    {totalUnits}
+                  </span>
+                  <p className="text-[7px] uppercase tracking-[0.15em] text-white/25 font-bold">
+                    Units
+                  </p>
+                </GlassCard>
+              </div>
+            );
+          })()}
         </header>
 
         {/* View Toggle */}
@@ -238,6 +270,7 @@ export default function PropertyDetailPage() {
             onAdvance={handleAdvanceTurnover}
             onRefresh={loadData}
             onCreateJob={handleCreateJob}
+            subWorkloads={subWorkloads}
           />
         ) : (
           <div className="space-y-3">
@@ -331,38 +364,44 @@ export default function PropertyDetailPage() {
                               </p>
                             ) : (
                               <div className="grid grid-cols-3 gap-2">
-                                {units.map((unit) => (
-                                  <button
-                                    key={unit.id}
-                                    onClick={() => {
-                                      if (
-                                        unit.status === "vacant" ||
-                                        unit.status === "occupied"
-                                      ) {
-                                        setShowStartTurnover(unit);
-                                      }
-                                    }}
-                                    className={`relative p-2.5 rounded border text-center transition-all hover:scale-105 ${
-                                      UNIT_STATUS_COLORS[unit.status]
-                                    }`}
-                                  >
-                                    <DoorOpen className="w-4 h-4 mx-auto mb-1 opacity-60" />
-                                    <p className="text-xs font-bold">
-                                      {unit.unit_number}
-                                    </p>
-                                    <p className="text-[8px] uppercase tracking-wider opacity-60">
-                                      {unit.status}
-                                    </p>
-                                    {unit.status === "turnover" && (
-                                      <div className="absolute top-1 right-1">
-                                        <RotateCw
-                                          className="w-3 h-3 text-amber-400 animate-spin"
-                                          style={{ animationDuration: "3s" }}
-                                        />
-                                      </div>
-                                    )}
-                                  </button>
-                                ))}
+                                {units.map((unit) => {
+                                  const isIdle = unit.status === "idle";
+                                  const isTurning = unit.status === "turnover";
+                                  return (
+                                    <button
+                                      key={unit.id}
+                                      onClick={() => {
+                                        if (isTurning || unit.status === "ready") {
+                                          // Navigate to unit detail page
+                                          window.location.href = `/ops/properties/${propertyId}/units/${unit.id}`;
+                                        } else if (isIdle) {
+                                          setShowStartTurnover(unit);
+                                        }
+                                      }}
+                                      className={`relative p-2.5 rounded border text-center transition-all hover:scale-105 ${
+                                        UNIT_STATUS_COLORS[unit.status] ?? UNIT_STATUS_COLORS.idle
+                                      }`}
+                                    >
+                                      <DoorOpen className={`w-4 h-4 mx-auto mb-1 ${isIdle ? "opacity-20" : "opacity-60"}`} />
+                                      <p className={`text-xs font-bold ${isIdle ? "opacity-30" : ""}`}>
+                                        {unit.unit_number}
+                                      </p>
+                                      {!isIdle && (
+                                        <p className="text-[8px] uppercase tracking-wider opacity-60">
+                                          {unit.status}
+                                        </p>
+                                      )}
+                                      {isTurning && (
+                                        <div className="absolute top-1 right-1">
+                                          <RotateCw
+                                            className="w-3 h-3 text-amber-400 animate-spin"
+                                            style={{ animationDuration: "3s" }}
+                                          />
+                                        </div>
+                                      )}
+                                    </button>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>

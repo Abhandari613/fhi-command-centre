@@ -80,10 +80,10 @@ export function CFODashboardClient({
         >
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white">
-              CFO Dashboard
+              Money
             </h1>
             <p className="text-white/50 text-sm">
-              Cash flow, receivables, and profitability at a glance.
+              What you've earned, what you're owed, and what's coming in.
             </p>
           </div>
         </motion.div>
@@ -94,28 +94,28 @@ export function CFODashboardClient({
           className="grid grid-cols-2 lg:grid-cols-4 gap-2"
         >
           <KPICard
-            label="Total Revenue"
+            label="Total Earned"
             value={fmt.format(totalRevenue)}
             icon={<DollarSign className="w-4 h-4" />}
             trend="up"
             accent="#10b981"
           />
           <KPICard
-            label="Outstanding"
+            label="Still Owed"
             value={fmt.format(outstandingTotal)}
             icon={<AlertTriangle className="w-4 h-4" />}
             trend={outstandingTotal > 0 ? "down" : "neutral"}
             accent="#ff6b00"
           />
           <KPICard
-            label="Profit Margin"
+            label="Your Cut"
             value={`${avgMargin.toFixed(1)}%`}
             icon={<TrendingUp className="w-4 h-4" />}
             trend={avgMargin > 20 ? "up" : avgMargin > 10 ? "neutral" : "down"}
             accent="#8b5cf6"
           />
           <KPICard
-            label="Pending Review"
+            label="Need to Sort"
             value={String(pendingCount)}
             icon={<ClipboardList className="w-4 h-4" />}
             accent="#6b7280"
@@ -135,7 +135,7 @@ export function CFODashboardClient({
             <GlassCard intensity="panel" className="p-4">
               <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
                 <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
-                Job Profitability
+                Am I Making Money?
               </h3>
               <div className="space-y-1">
                 {jobProfits.slice(0, 8).map((jp: any) => {
@@ -185,7 +185,7 @@ export function CFODashboardClient({
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-              Clearing House
+              Transactions to Review
             </h3>
             <div className="flex items-center gap-2">
               <AutoCategorizeButton />
@@ -206,24 +206,24 @@ export function CFODashboardClient({
         <motion.div variants={item}>
           <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
             <div className="w-1.5 h-4 bg-primary rounded-full" />
-            Finance Tools
+            More Money Stuff
           </h3>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
             <Link href="/ops/finance/reconciliation">
               <GlassCard className="p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group h-full">
                 <GitCompareArrows className="w-5 h-5 text-primary mb-2" />
-                <p className="text-sm font-bold text-white">Reconciliation</p>
+                <p className="text-sm font-bold text-white">Match Receipts</p>
                 <p className="text-[10px] text-white/40 mt-0.5">
-                  Match receipts
+                  Line up bank vs receipts
                 </p>
               </GlassCard>
             </Link>
             <Link href="/ops/finance/payouts">
               <GlassCard className="p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group h-full">
                 <Users className="w-5 h-5 text-emerald-400 mb-2" />
-                <p className="text-sm font-bold text-white">Sub Payouts</p>
+                <p className="text-sm font-bold text-white">Pay the Crew</p>
                 <p className="text-[10px] text-white/40 mt-0.5">
-                  Contractor pay
+                  What you owe your guys
                 </p>
               </GlassCard>
             </Link>
@@ -231,34 +231,34 @@ export function CFODashboardClient({
               <GlassCard className="p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group h-full">
                 <RotateCcw className="w-5 h-5 text-purple-400 mb-2" />
                 <p className="text-sm font-bold text-white">
-                  Recurring Schedules
+                  Repeat Jobs
                 </p>
                 <p className="text-[10px] text-white/40 mt-0.5">
-                  Auto-invoicing
+                  Jobs that come back every month
                 </p>
               </GlassCard>
             </Link>
             <Link href="/ops/finance/catalog">
               <GlassCard className="p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group h-full">
                 <BookOpen className="w-5 h-5 text-amber-400 mb-2" />
-                <p className="text-sm font-bold text-white">Services Catalog</p>
-                <p className="text-[10px] text-white/40 mt-0.5">Rate library</p>
+                <p className="text-sm font-bold text-white">My Prices</p>
+                <p className="text-[10px] text-white/40 mt-0.5">What I charge for stuff</p>
               </GlassCard>
             </Link>
             <Link href="/ops/finance/statements">
               <GlassCard className="p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group h-full">
                 <FileText className="w-5 h-5 text-cyan-400 mb-2" />
-                <p className="text-sm font-bold text-white">Statements</p>
+                <p className="text-sm font-bold text-white">Who Owes What</p>
                 <p className="text-[10px] text-white/40 mt-0.5">
-                  Client accounts
+                  Account by account
                 </p>
               </GlassCard>
             </Link>
             <GlassCard className="p-4 h-full">
               <Upload className="w-5 h-5 text-gray-400 mb-2" />
-              <p className="text-sm font-bold text-white">Upload Data</p>
+              <p className="text-sm font-bold text-white">Upload Bank File</p>
               <p className="text-[10px] text-white/40 mt-0.5">
-                Bank statements
+                Drop a CSV from the bank
               </p>
               <div className="mt-2">
                 <UploadZone />

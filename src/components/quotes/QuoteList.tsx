@@ -23,7 +23,7 @@ import type { Database } from "@/types/supabase";
 type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
 type Job = JobRow & {
   quote_line_items?: any[];
-  clients?: { full_name: string | null; company: string | null } | null;
+  clients?: { name: string | null } | null;
 };
 
 type FilterType =
@@ -307,7 +307,7 @@ export function QuoteList() {
                       <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
                         <User className="w-3 h-3 text-primary" />
                         <span>
-                          {quote.clients?.full_name || "Unknown Client"}
+                          {quote.clients?.name || "Unknown Client"}
                         </span>
                       </div>
                     </div>

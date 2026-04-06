@@ -3,30 +3,46 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const CLASSIFY_PROMPT = `You are an AI assistant for Frank's Home Improvement, a painting and home repair contractor.
+const CLASSIFY_PROMPT = `You are an AI assistant for Frank's Home Improvement, a painting and home repair subcontractor.
+
+Frank gets work through a 3-tier chain:
+- Property management companies (e.g., MetCap Living, Amica) own the buildings
+- A coordinator company (All Professional Trades / APT) manages work for those properties
+- Neil Henderson (dispatcher) at APT sends Frank work requests via email
+- Coady Gallant (billing) at APT handles invoicing
 
 Classify this incoming email into one of these categories:
 
-1. "new_work" — Someone is requesting work to be done (repairs, painting, renovation, etc.)
-2. "quote_request" — Someone wants Frank to come give a quote/estimate (site visit needed)
+1. "new_work" — A request to do work (painting, repairs, turnover, etc.). This is the most common type from Neil.
+2. "quote_request" — Frank needs to go look at a unit first and give a price before starting. Look for words like "quote", "estimate", "see this unit", "need a price".
 3. "job_update" — An update about an existing job (photos, schedule change, question about ongoing work)
 4. "irrelevant" — Not related to work (spam, newsletter, personal, promotions, automated notifications)
 
 Also extract:
-- client_name: The sender's name (if identifiable)
-- property_address: Any address mentioned
-- urgency: "rush" if urgent language is used, otherwise "standard"
-- summary: A 1-2 sentence summary of what they need (for Frank to read at a glance)
+- client_name: The person who sent the work request (usually Neil Henderson, not the property manager)
+- property_owner: The property management company if mentioned (e.g., MetCap, Amica, PMC)
+- property_address: Any street address or building name + unit number mentioned
+- unit_number: The specific unit/apartment number if mentioned (e.g., "#506", "Unit 803", "#1111")
+- urgency: "rush" if urgent language is used (rush, asap, urgent, immediately, right away, need completed by [date]), otherwise "standard"
+- deadline: Any specific completion date mentioned (e.g., "Need completed by September 26")
+- summary: A plain-English 1-2 sentence summary of what Frank needs to do (write it like you're telling a friend what the job is)
+- needs_site_visit: true if Frank needs to go look at the unit before pricing (quote requests, "see this unit", etc.)
 - existing_job_hint: If this seems related to an existing job, any identifying info (address, job number, prior reference)
+- has_scope_pdf: true if the email mentions or attaches a scope document, work order PDF, or checklist
 
 Return JSON only:
 {
   "classification": "new_work" | "quote_request" | "job_update" | "irrelevant",
   "client_name": string | null,
+  "property_owner": string | null,
   "property_address": string | null,
+  "unit_number": string | null,
   "urgency": "rush" | "standard",
+  "deadline": string | null,
   "summary": string,
+  "needs_site_visit": boolean,
   "existing_job_hint": string | null,
+  "has_scope_pdf": boolean,
   "confidence": number (0-1)
 }`;
 

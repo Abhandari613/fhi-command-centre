@@ -45,7 +45,7 @@ export type Unit = {
   bedrooms: number | null;
   bathrooms: number | null;
   sqft: number | null;
-  status: "occupied" | "vacant" | "turnover" | "ready" | "offline";
+  status: "idle" | "turnover" | "ready" | "offline";
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -73,38 +73,38 @@ export const TURNOVER_STAGE_CONFIG: Record<
   { label: string; color: string; bgColor: string }
 > = {
   notice: {
-    label: "Notice Given",
+    label: "Tenant Moving Out",
     color: "text-blue-400",
     bgColor: "bg-blue-500/10",
   },
   vacated: {
-    label: "Vacated",
+    label: "Unit Empty",
     color: "text-gray-400",
     bgColor: "bg-gray-500/10",
   },
   inspection: {
-    label: "Inspection",
+    label: "Walk-Through",
     color: "text-yellow-400",
     bgColor: "bg-yellow-500/10",
   },
   in_progress: {
-    label: "Repairs",
+    label: "Fixing Up",
     color: "text-orange-400",
     bgColor: "bg-orange-500/10",
   },
   paint: {
-    label: "Paint",
+    label: "Painting",
     color: "text-indigo-400",
     bgColor: "bg-indigo-500/10",
   },
-  clean: { label: "Clean", color: "text-cyan-400", bgColor: "bg-cyan-500/10" },
+  clean: { label: "Cleaning", color: "text-cyan-400", bgColor: "bg-cyan-500/10" },
   final_qc: {
-    label: "Final QC",
+    label: "Final Check",
     color: "text-purple-400",
     bgColor: "bg-purple-500/10",
   },
   ready: {
-    label: "Ready",
+    label: "Move-In Ready",
     color: "text-emerald-400",
     bgColor: "bg-emerald-500/10",
   },
@@ -124,8 +124,12 @@ export type Turnover = {
   job_id: string | null;
   notes: string | null;
   is_active: boolean;
+  completed_at: string | null;
+  actual_ready_date: string | null;
   created_at: string;
   updated_at: string;
+  // Computed
+  duration_days?: number | null;
   // Joined
   unit_number?: string;
   building_name?: string;
@@ -179,7 +183,61 @@ export type PropertyTurnoverSummary = {
   total_units: number;
   units_in_turnover: number;
   units_ready: number;
-  units_vacant: number;
+  units_idle: number;
   active_turnovers: number;
   completed_turnovers: number;
+};
+
+// Turnover audit trail
+export const TURNOVER_EVENT_TYPES = [
+  "created",
+  "stage_changed",
+  "task_added",
+  "task_completed",
+  "task_skipped",
+  "assigned",
+  "unassigned",
+  "cost_updated",
+  "note_added",
+  "job_linked",
+  "photo_added",
+  "completed",
+] as const;
+
+export type TurnoverEventType = (typeof TURNOVER_EVENT_TYPES)[number];
+
+export type TurnoverEvent = {
+  id: string;
+  turnover_id: string;
+  organization_id: string;
+  event_type: TurnoverEventType;
+  previous_value: Record<string, unknown> | null;
+  new_value: Record<string, unknown> | null;
+  metadata: Record<string, unknown> | null;
+  actor_id: string | null;
+  created_at: string;
+};
+
+// Workload capacity
+export type SubcontractorWorkload = {
+  subcontractor_id: string;
+  subcontractor_name: string;
+  organization_id: string;
+  max_concurrent_tasks: number;
+  active_task_count: number;
+  completed_task_count: number;
+  capacity_status: "available" | "at_capacity" | "overloaded";
+};
+
+// Critical path
+export type CriticalPathStatus = "on_track" | "at_risk" | "behind" | "blocked";
+
+export type CriticalPathInfo = {
+  status: CriticalPathStatus;
+  expectedProgress: number; // 0-1
+  actualProgress: number;   // 0-1
+  gap: number;              // expected - actual
+  label: string;
+  color: string;
+  bgColor: string;
 };

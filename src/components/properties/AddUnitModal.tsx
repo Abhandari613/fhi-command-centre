@@ -20,7 +20,7 @@ export function AddUnitModal({
   const [floor, setFloor] = useState("");
   const [bedrooms, setBedrooms] = useState("");
   const [bathrooms, setBathrooms] = useState("");
-  const [status, setStatus] = useState<string>("occupied");
+  const [status, setStatus] = useState<string>("idle");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -225,8 +225,7 @@ export function AddUnitModal({
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary/40 transition-colors"
               >
-                <option value="occupied">Occupied</option>
-                <option value="vacant">Vacant</option>
+                <option value="idle">Idle</option>
                 <option value="ready">Ready</option>
                 <option value="offline">Offline</option>
               </select>

@@ -1,5 +1,6 @@
 export type JobStatus =
   | "incoming"
+  | "site_visit"
   | "draft"
   | "quoted"
   | "sent"
@@ -11,18 +12,21 @@ export type JobStatus =
   | "paid"
   | "cancelled";
 
-// 10-stop workflow:
-// 1. incoming (Auto-Detected)
-// 2. draft (What Needs Doing)
-// 3. quoted (Price It Up)
-// 4. sent → approved (Client Says Yes)
-// 5. scheduled (Lock In the Date + Crew Dispatched)
-// 6. in_progress (Boots on the Ground)
-// 7. completed (AI Verifies Completion)
-// 8. invoiced (Auto-Invoice)
-// 9. paid (Done + Follow-Up)
+// 11-step workflow (matches how Neil emails Frank work):
+// 1. incoming    — New request came in (email from Neil)
+// 2. site_visit  — Go look at the unit / get measurements
+// 3. draft       — Write up what needs doing
+// 4. quoted      — Price it up
+// 5. sent        — Quote sent to Neil / Coady
+// 6. approved    — Neil says go ahead
+// 7. scheduled   — Date + crew locked in
+// 8. in_progress — Work is happening
+// 9. completed   — Done, take photos
+// 10. invoiced   — Invoice sent to Coady
+// 11. paid       — Money received
 export const JOB_STATUS_FLOW: Record<JobStatus, JobStatus[]> = {
-  incoming: ["draft", "cancelled"],
+  incoming: ["site_visit", "draft", "cancelled"],
+  site_visit: ["draft", "cancelled", "incoming"],
   draft: ["quoted", "cancelled"],
   quoted: ["sent", "cancelled", "draft"],
   sent: ["approved", "cancelled", "quoted"],
@@ -36,15 +40,16 @@ export const JOB_STATUS_FLOW: Record<JobStatus, JobStatus[]> = {
 };
 
 export const STATUS_LABELS: Record<JobStatus, string> = {
-  incoming: "Incoming",
-  draft: "Draft",
-  quoted: "Quoted",
-  sent: "Sent to Client",
-  approved: "Approved",
-  scheduled: "Scheduled",
-  in_progress: "In Progress",
-  completed: "Completed",
-  invoiced: "Invoiced",
+  incoming: "New Request",
+  site_visit: "Go Look",
+  draft: "Scope It Out",
+  quoted: "Priced Up",
+  sent: "Quote Sent",
+  approved: "Got the Go-Ahead",
+  scheduled: "Booked In",
+  in_progress: "On the Job",
+  completed: "Work Done",
+  invoiced: "Invoice Sent",
   paid: "Paid",
   cancelled: "Cancelled",
 };

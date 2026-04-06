@@ -16,12 +16,15 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getTurnoverUrgency, sortByUrgency } from "@/lib/turnover-urgency";
+import { getCriticalPath } from "@/lib/turnover-critical-path";
+import type { SubcontractorWorkload } from "@/types/properties";
 
 export function MakeReadyBoard({
   turnovers,
   onAdvance,
   onRefresh,
   onCreateJob,
+  subWorkloads,
 }: {
   turnovers: Turnover[];
   onAdvance: (turnoverId: string) => Promise<void>;
@@ -29,6 +32,7 @@ export function MakeReadyBoard({
   onCreateJob?: (
     turnoverId: string,
   ) => Promise<{ jobId: string; jobNumber?: string } | null>;
+  subWorkloads?: SubcontractorWorkload[];
 }) {
   const [advancing, setAdvancing] = useState<string | null>(null);
   const [creatingJob, setCreatingJob] = useState<string | null>(null);
@@ -160,6 +164,7 @@ export function MakeReadyBoard({
                         ? (e) => handleCreateJob(turnover.id, e)
                         : undefined
                     }
+                    subWorkloads={subWorkloads}
                   />
                 ))}
               </div>
@@ -178,6 +183,7 @@ function TurnoverCard({
   onAdvance,
   creatingJob,
   onCreateJob,
+  subWorkloads,
 }: {
   turnover: Turnover;
   stage: TurnoverStage;
@@ -185,16 +191,31 @@ function TurnoverCard({
   onAdvance: (e: React.MouseEvent) => void;
   creatingJob?: boolean;
   onCreateJob?: (e: React.MouseEvent) => void;
+  subWorkloads?: SubcontractorWorkload[];
 }) {
   const config = TURNOVER_STAGE_CONFIG[stage];
   const urgency = getTurnoverUrgency(turnover);
+  const criticalPath = getCriticalPath(turnover);
+
+  // Find sub workload info if assigned
+  const subWorkload = turnover.assigned_to && subWorkloads
+    ? subWorkloads.find((w) => w.subcontractor_id === turnover.assigned_to)
+    : null;
+
+  // Left border color based on critical path
+  const leftBorderClass =
+    criticalPath.status === "behind"
+      ? "border-l-2 border-l-orange-500/50"
+      : criticalPath.status === "blocked"
+        ? "border-l-2 border-l-red-500/50"
+        : "";
 
   return (
-    <GlassCard className="p-3">
+    <GlassCard className={`p-3 ${leftBorderClass}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          {/* Unit + Building + Urgency pill */}
-          <div className="flex items-center gap-2 mb-1">
+          {/* Unit + Building + Pills */}
+          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
             <span
               className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded border ${config.bgColor} ${config.color}`}
             >
@@ -204,13 +225,23 @@ function TurnoverCard({
               {turnover.building_name}
               {turnover.building_code && ` (${turnover.building_code})`}
             </span>
-            {/* Move-in urgency pill */}
-            <span
-              className={`ml-auto shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${urgency.bgColor} ${urgency.color} ${urgency.borderColor} ${urgency.pulse ? "animate-pulse" : ""}`}
-            >
-              {urgency.tier === "fire" && <Flame className="w-2.5 h-2.5" />}
-              {urgency.label}
-            </span>
+            <div className="ml-auto shrink-0 flex items-center gap-1">
+              {/* Critical path pill */}
+              {criticalPath.status !== "on_track" && (
+                <span
+                  className={`text-[8px] font-bold font-mono px-1 py-0.5 rounded ${criticalPath.bgColor} ${criticalPath.color}`}
+                >
+                  {criticalPath.label}
+                </span>
+              )}
+              {/* Move-in urgency pill */}
+              <span
+                className={`inline-flex items-center gap-0.5 text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${urgency.bgColor} ${urgency.color} ${urgency.borderColor} ${urgency.pulse ? "animate-pulse" : ""}`}
+              >
+                {urgency.tier === "fire" && <Flame className="w-2.5 h-2.5" />}
+                {urgency.label}
+              </span>
+            </div>
           </div>
 
           {/* Property if showing all */}
@@ -260,9 +291,20 @@ function TurnoverCard({
               </span>
             )}
             {turnover.assigned_name && (
-              <span className="flex items-center gap-1">
+              <span className={`flex items-center gap-1 ${
+                subWorkload?.capacity_status === "overloaded"
+                  ? "text-red-400"
+                  : subWorkload?.capacity_status === "at_capacity"
+                    ? "text-amber-400"
+                    : ""
+              }`}>
                 <User className="w-3 h-3" />
                 {turnover.assigned_name}
+                {subWorkload && (
+                  <span className="text-[8px] opacity-60">
+                    ({subWorkload.active_task_count}/{subWorkload.max_concurrent_tasks})
+                  </span>
+                )}
               </span>
             )}
           </div>

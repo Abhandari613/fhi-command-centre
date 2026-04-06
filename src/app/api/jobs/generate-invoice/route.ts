@@ -17,11 +17,11 @@ export async function POST(req: NextRequest) {
 
     const supabase = getAdminClient();
 
-    // Get job
+    // Get job with coordinator and billing contact info
     const { data: job } = await supabase
       .from("jobs")
       .select(
-        "id, job_number, property_address, address, organization_id, status",
+        "id, job_number, property_address, address, organization_id, status, coordinator_contact_id, billing_contact_id, property_owner_name",
       )
       .eq("id", jobId)
       .single();
@@ -91,11 +91,34 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Look up billing contact if set on job
+    let billingContactEmail: string | null = null;
+    let coordinatorContactEmail: string | null = null;
+    if ((job as any).billing_contact_id) {
+      const { data: billingContact } = await supabase
+        .from("contacts")
+        .select("name, email")
+        .eq("id", (job as any).billing_contact_id)
+        .single();
+      if (billingContact) billingContactEmail = billingContact.email;
+    }
+    if ((job as any).coordinator_contact_id) {
+      const { data: coordContact } = await supabase
+        .from("contacts")
+        .select("name, email")
+        .eq("id", (job as any).coordinator_contact_id)
+        .single();
+      if (coordContact) coordinatorContactEmail = coordContact.email;
+    }
+
     // Generate invoice data
     const invoiceData = {
       job_id: jobId,
       job_number: (job as any).job_number,
       property_address: (job as any).property_address || (job as any).address,
+      property_owner: (job as any).property_owner_name || null,
+      billing_contact_email: billingContactEmail,
+      coordinator_contact_email: coordinatorContactEmail,
       line_items: (tasks as any[]).map((t) => ({
         description: t.description,
         quantity: t.quantity || 1,

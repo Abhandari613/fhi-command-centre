@@ -29,21 +29,23 @@ import {
 import Link from "next/link";
 
 const STATUS_LABELS: Record<string, string> = {
-  incoming: "Incoming",
-  draft: "Draft",
-  quoted: "Quoted",
-  sent: "Sent",
-  approved: "Approved",
-  scheduled: "Scheduled",
-  in_progress: "In Progress",
-  completed: "Completed",
-  invoiced: "Invoiced",
+  incoming: "New Request",
+  site_visit: "Go Look",
+  draft: "Scope It Out",
+  quoted: "Priced Up",
+  sent: "Quote Sent",
+  approved: "Got the Go-Ahead",
+  scheduled: "Booked In",
+  in_progress: "On the Job",
+  completed: "Work Done",
+  invoiced: "Invoice Sent",
   paid: "Paid",
   cancelled: "Cancelled",
 };
 
 const STATUS_COLORS: Record<string, string> = {
   incoming: "bg-blue-500/20 text-blue-400",
+  site_visit: "bg-violet-500/20 text-violet-400",
   draft: "bg-gray-500/20 text-gray-400",
   quoted: "bg-yellow-500/20 text-yellow-400",
   sent: "bg-indigo-500/20 text-indigo-400",
@@ -179,8 +181,8 @@ export default function JobDetailPage() {
   const photos = attachments.filter((a: any) => a.file_type === "photo");
   const statusColor = STATUS_COLORS[job.status] || "bg-white/10 text-white/60";
 
-  // Status-aware action visibility (aligned to 10-stop workflow)
-  const showScopeLink = ["incoming", "draft", "quoted"].includes(job.status);
+  // Status-aware action visibility (aligned to 11-step workflow)
+  const showScopeLink = ["incoming", "site_visit", "draft", "quoted"].includes(job.status);
   const showQuoteLink = ["draft", "quoted", "sent"].includes(job.status);
   const showScheduleLink = ["approved"].includes(job.status);
   const showCompletionLink = ["in_progress", "completed"].includes(job.status);
@@ -311,7 +313,7 @@ export default function JobDetailPage() {
         <GlassCard className="p-4">
           <h3 className="text-sm font-bold opacity-60 mb-2 flex items-center gap-2">
             <Mail className="w-4 h-4" />
-            Original Email
+            Email That Started This
           </h3>
           <p className="text-sm font-medium mb-1">{job.source_email_subject}</p>
           {job.source_email_body && (
@@ -343,7 +345,7 @@ export default function JobDetailPage() {
               ? "Scoping..."
               : uploading
                 ? "Uploading..."
-                : "Add On-Site Photos"}
+                : "Take Photos"}
           </button>
           <input
             ref={fileInputRef}
@@ -376,7 +378,7 @@ export default function JobDetailPage() {
         <GlassCard className="p-4">
           <h3 className="text-sm font-bold opacity-60 mb-3 flex items-center gap-2">
             <CheckSquare className="w-4 h-4" />
-            Scope ({confirmedTasks.length} tasks)
+            The Work ({confirmedTasks.length} items)
           </h3>
           <ul className="space-y-1">
             {confirmedTasks.map((t: any) => (
@@ -410,7 +412,7 @@ export default function JobDetailPage() {
           </div>
           {workOrders.length === 0 ? (
             <p className="text-xs opacity-40 text-center py-2">
-              No work orders yet
+              No work orders linked yet
             </p>
           ) : (
             <ul className="space-y-2">
@@ -451,7 +453,7 @@ export default function JobDetailPage() {
             className="w-full bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
           >
             <ClipboardList className="w-5 h-5" />
-            Edit Scope
+            What Needs Doing
           </Link>
         )}
         {showQuoteLink && (
@@ -460,7 +462,7 @@ export default function JobDetailPage() {
             className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
           >
             <FileText className="w-5 h-5" />
-            Build Quote
+            Price It Up
           </Link>
         )}
         {showScheduleLink && (
@@ -478,7 +480,7 @@ export default function JobDetailPage() {
             className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
           >
             <ClipboardCheck className="w-5 h-5" />
-            Completion Report
+            Mark It Done
           </Link>
         )}
         {showFinanceLink && (
@@ -487,7 +489,7 @@ export default function JobDetailPage() {
             className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[56px]"
           >
             <DollarSign className="w-5 h-5" />
-            Job Finance
+            Money on This Job
           </Link>
         )}
       </div>

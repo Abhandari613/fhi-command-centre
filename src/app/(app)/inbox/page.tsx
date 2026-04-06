@@ -34,16 +34,16 @@ const CLASSIFICATION_BADGES: Record<
   string,
   { label: string; color: string }
 > = {
-  new_work: { label: "New Work", color: "bg-blue-500/20 text-blue-400" },
+  new_work: { label: "New Job", color: "bg-blue-500/20 text-blue-400" },
   quote_request: {
-    label: "Quote Request",
+    label: "Needs a Quote",
     color: "bg-yellow-500/20 text-yellow-400",
   },
   job_update: {
-    label: "Job Update",
+    label: "About an Existing Job",
     color: "bg-emerald-500/20 text-emerald-400",
   },
-  irrelevant: { label: "Other", color: "bg-gray-500/20 text-gray-400" },
+  irrelevant: { label: "Not Work", color: "bg-gray-500/20 text-gray-400" },
 };
 
 function formatDate(dateStr: string) {
@@ -142,9 +142,9 @@ export default function InboxPage() {
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         {[
           { key: "all", label: "All" },
-          { key: "unread", label: "Unread" },
-          { key: "new_work", label: "New Work" },
-          { key: "quote_request", label: "Quotes" },
+          { key: "unread", label: "New" },
+          { key: "new_work", label: "Jobs" },
+          { key: "quote_request", label: "Need a Quote" },
           { key: "job_update", label: "Updates" },
         ].map((f) => (
           <button
@@ -171,7 +171,7 @@ export default function InboxPage() {
         <GlassCard className="p-8 text-center">
           <Mail className="w-10 h-10 text-gray-600 mx-auto mb-3" />
           <p className="text-gray-400 text-sm">
-            {filter === "all" ? "No emails yet" : "No matching emails"}
+            {filter === "all" ? "No work emails yet" : "Nothing here yet"}
           </p>
           <button
             onClick={syncNow}

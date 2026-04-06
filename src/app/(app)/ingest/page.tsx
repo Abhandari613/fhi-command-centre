@@ -68,10 +68,10 @@ export default function IngestPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-black tracking-tight text-white">
-          Email Intake
+          New Job from Email
         </h1>
         <p className="text-[10px] font-mono text-white/30 tracking-wider">
-          Paste an incoming email to auto-create a job
+          Paste what Neil sent you and we'll set it up
         </p>
       </header>
 
@@ -93,7 +93,7 @@ export default function IngestPage() {
                     href={`/ops/jobs/${result.jobId}/scope`}
                     className="text-sm text-primary hover:underline"
                   >
-                    Add scope from photos &rarr;
+                    See what needs doing &rarr;
                   </Link>
                 </div>
               </div>
@@ -121,7 +121,7 @@ export default function IngestPage() {
         {/* Urgency badge */}
         {isRush() && (
           <div className="bg-red-500/20 border border-red-500/40 rounded-xl px-4 py-2 text-red-300 font-bold text-center text-sm">
-            RUSH JOB DETECTED
+            URGENT - THEY NEED THIS FAST
           </div>
         )}
 
@@ -129,13 +129,13 @@ export default function IngestPage() {
         <div>
           <label className="block text-sm font-semibold mb-2 opacity-80">
             <Mail className="inline w-4 h-4 mr-1" />
-            Email Subject
+            Subject Line
           </label>
           <input
             type="text"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            placeholder="Paste the subject line here..."
+            placeholder="e.g. Rush- Pmc unit-1975 St. Laurent #1111"
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base placeholder:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
           />
         </div>
@@ -143,12 +143,12 @@ export default function IngestPage() {
         {/* Body */}
         <div>
           <label className="block text-sm font-semibold mb-2 opacity-80">
-            Email Body
+            What They Said
           </label>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Paste the email body here..."
+            placeholder="e.g. Frank, start these on Monday. Need completed by Sept 26."
             rows={6}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base placeholder:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
           />
@@ -173,7 +173,7 @@ export default function IngestPage() {
             onClick={() => fileRef.current?.click()}
             className="w-full bg-white/5 border-2 border-dashed border-white/15 rounded-xl py-4 text-center text-sm opacity-60 hover:opacity-80 active:scale-[0.98] transition-all min-h-[56px]"
           >
-            Tap to add photos or PDF
+            Add photos or scope PDF from the email
           </button>
 
           {/* File list */}

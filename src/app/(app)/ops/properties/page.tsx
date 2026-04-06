@@ -242,11 +242,11 @@ export default function PropertiesPage() {
                                     }}
                                   />
                                 )}
-                                {property.units_vacant > 0 && (
+                                {property.units_idle > 0 && (
                                   <div
-                                    className="h-full bg-red-500/40"
+                                    className="h-full bg-white/[0.06]"
                                     style={{
-                                      width: `${(property.units_vacant / property.total_units) * 100}%`,
+                                      width: `${(property.units_idle / property.total_units) * 100}%`,
                                     }}
                                   />
                                 )}

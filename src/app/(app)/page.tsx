@@ -239,7 +239,7 @@ export default function BloombergDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-black tracking-tight text-white">
-                FHI Terminal
+                My Jobs
               </h1>
               <p className="text-[10px] font-mono text-white/30 tracking-wider">
                 {currentDate} &middot; {currentTime}
@@ -274,12 +274,12 @@ export default function BloombergDashboard() {
                   color: "text-primary",
                 },
                 {
-                  label: "Pipeline",
+                  label: "Lined Up",
                   value: fmt.format(metrics.pipelineValue),
                   color: "text-cyan-400",
                 },
                 {
-                  label: "Outstanding",
+                  label: "Owed",
                   value: fmt.format(metrics.outstanding),
                   color:
                     metrics.overdueCount > 0
@@ -388,7 +388,7 @@ export default function BloombergDashboard() {
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-bold text-white flex items-center gap-2">
                   <Activity className="w-3.5 h-3.5 text-primary" />
-                  <span className="uppercase tracking-wider">Pipeline</span>
+                  <span className="uppercase tracking-wider">Work Lined Up</span>
                   <span className="text-white/20 font-mono text-[10px]">
                     {metrics.totalJobs}
                   </span>
@@ -397,7 +397,7 @@ export default function BloombergDashboard() {
                   href="/dashboard"
                   className="text-[10px] text-white/30 hover:text-primary transition-colors font-mono"
                 >
-                  KANBAN <ChevronRight className="w-3 h-3 inline" />
+                  ALL JOBS <ChevronRight className="w-3 h-3 inline" />
                 </Link>
               </div>
               {loading ? (
@@ -415,7 +415,7 @@ export default function BloombergDashboard() {
             <GlassCard intensity="panel" className="p-4 space-y-3">
               <h2 className="text-xs font-bold text-white flex items-center gap-2">
                 <Hammer className="w-3.5 h-3.5 text-primary" />
-                <span className="uppercase tracking-wider">In the Field</span>
+                <span className="uppercase tracking-wider">Working On Now</span>
               </h2>
               {loading ? (
                 <div className="space-y-2">
@@ -451,8 +451,8 @@ export default function BloombergDashboard() {
                             <p className="text-[10px] text-white/30 font-mono">
                               {job.job_number} &middot;{" "}
                               {job.status === "in_progress"
-                                ? "ACTIVE"
-                                : "SCHEDULED"}
+                                ? "ON THE JOB"
+                                : "BOOKED IN"}
                             </p>
                           </div>
                           {(job.quoted_total ?? 0) > 0 && (
@@ -467,7 +467,7 @@ export default function BloombergDashboard() {
                     ["scheduled", "in_progress"].includes(j.status),
                   ).length === 0 && (
                     <p className="text-xs text-white/20 text-center py-3 font-mono">
-                      No active jobs
+                      Nothing on the go right now
                     </p>
                   )}
                 </div>
@@ -489,7 +489,7 @@ export default function BloombergDashboard() {
                     <h2 className="text-xs font-bold text-amber-400 flex items-center gap-2">
                       <AlertTriangle className="w-3.5 h-3.5" />
                       <span className="uppercase tracking-wider">
-                        Needs Attention
+                        Don't Forget
                       </span>
                     </h2>
                     {attentionJobs.map((job) => {
@@ -541,7 +541,7 @@ export default function BloombergDashboard() {
                 />
               ) : (
                 <p className="text-xs text-white/20 text-center py-4 font-mono">
-                  No receivables data
+                  Nobody owes you money right now
                 </p>
               )}
             </GlassCard>
@@ -552,14 +552,14 @@ export default function BloombergDashboard() {
                 <h2 className="text-xs font-bold text-white flex items-center gap-2">
                   <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="uppercase tracking-wider">
-                    Job Profitability
+                    Am I Making Money?
                   </span>
                 </h2>
                 <Link
                   href="/ops/finance"
                   className="text-[10px] text-white/30 hover:text-primary transition-colors font-mono"
                 >
-                  CFO HUB <ChevronRight className="w-3 h-3 inline" />
+                  MONEY <ChevronRight className="w-3 h-3 inline" />
                 </Link>
               </div>
               {loading ? (
@@ -577,7 +577,7 @@ export default function BloombergDashboard() {
             <GlassCard intensity="panel" className="p-4 space-y-3">
               <h2 className="text-xs font-bold text-white flex items-center gap-2">
                 <DollarSign className="w-3.5 h-3.5 text-primary" />
-                <span className="uppercase tracking-wider">Cash Position</span>
+                <span className="uppercase tracking-wider">Money In / Money Out</span>
               </h2>
               {loading ? (
                 <Skeleton className="h-16 w-full" />
@@ -585,7 +585,7 @@ export default function BloombergDashboard() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-white/30 uppercase tracking-wider font-mono">
-                      Total Revenue
+                      Total Earned
                     </span>
                     <span className="text-sm font-mono font-black tabular-nums text-emerald-400">
                       {fmt.format(metrics.totalRevenue)}
@@ -593,7 +593,7 @@ export default function BloombergDashboard() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-white/30 uppercase tracking-wider font-mono">
-                      Outstanding
+                      Still Owed
                     </span>
                     <span className="text-sm font-mono font-black tabular-nums text-amber-400">
                       {fmt.format(metrics.outstanding)}
@@ -602,7 +602,7 @@ export default function BloombergDashboard() {
                   <div className="h-px bg-white/5" />
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-white/30 uppercase tracking-wider font-mono">
-                      Collected
+                      In the Bank
                     </span>
                     <span className="text-sm font-mono font-black tabular-nums text-white">
                       {fmt.format(metrics.totalRevenue - metrics.outstanding)}
@@ -654,7 +654,7 @@ export default function BloombergDashboard() {
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-bold text-white flex items-center gap-2">
                   <RotateCw className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="uppercase tracking-wider">Turnovers</span>
+                  <span className="uppercase tracking-wider">Unit Turns</span>
                   <span className="text-white/20 font-mono text-[10px]">
                     {properties.reduce((s, p) => s + p.active_turnovers, 0)}{" "}
                     active
@@ -664,7 +664,7 @@ export default function BloombergDashboard() {
                   href="/ops/properties/countdown"
                   className="text-[10px] text-white/30 hover:text-primary transition-colors font-mono"
                 >
-                  COUNTDOWN <ChevronRight className="w-3 h-3 inline" />
+                  DEADLINES <ChevronRight className="w-3 h-3 inline" />
                 </Link>
               </div>
 
@@ -723,7 +723,7 @@ export default function BloombergDashboard() {
                                   ((p.units_ready +
                                     (p.total_units -
                                       p.units_in_turnover -
-                                      p.units_vacant -
+                                      (p.units_idle ?? 0) -
                                       p.units_ready)) /
                                     p.total_units) *
                                     100,
@@ -738,7 +738,7 @@ export default function BloombergDashboard() {
                 {properties.filter((p) => p.active_turnovers > 0).length ===
                   0 && (
                   <p className="text-xs text-white/20 text-center py-2 font-mono">
-                    No active turnovers
+                    No units turning over right now
                   </p>
                 )}
               </div>
@@ -761,7 +761,7 @@ export default function BloombergDashboard() {
                   <Hammer className="w-3.5 h-3.5" strokeWidth={2.5} />
                 </div>
                 <span className="font-bold text-[9px] tracking-wide uppercase">
-                  Dispatch
+                  Crew
                 </span>
               </AnimatedButton>
             </Link>
