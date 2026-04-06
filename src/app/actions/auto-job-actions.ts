@@ -23,7 +23,7 @@ const RECOGNIZED_TRADES = [
  * Compute extraction confidence score for a work order draft.
  * Returns 0-100 score based on data quality signals.
  */
-export function computeConfidence(draft: {
+function computeConfidence(draft: {
   client_name?: string | null;
   property_address_or_unit?: string | null;
   trade_type?: string | null;
