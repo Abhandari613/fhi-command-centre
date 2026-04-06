@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { isSilentMode } from "@/lib/services/silent-mode";
+import { logShadowOutbound } from "@/lib/services/shadow-log";
 
 function getAdminClient() {
   return createClient(
@@ -148,9 +149,20 @@ export async function processPaymentReminders(): Promise<{
     const html = tier.html(job, client, appUrl);
 
     try {
-      // Silent mode: skip sending but still record the reminder internally
+      // Silent mode: skip sending but log what would have been sent
       if (await isSilentMode((job as any).organization_id)) {
         console.log(`[SILENT MODE] Suppressed payment reminder "${subject}" to ${client.email}`);
+        await logShadowOutbound({
+          organizationId: (job as any).organization_id,
+          sourceRoute: "payment-reminders",
+          emailType: "payment_reminder",
+          to: client.email,
+          subject,
+          bodyHtml: html,
+          relatedJobId: job.id,
+          relatedJobNumber: (job as any).job_number,
+          metadata: { reminderTier: tier.type, daysOutstanding, amount: (job as any).final_invoice_amount, clientName: client.name },
+        });
       } else if (process.env.RESEND_API_KEY) {
         const { Resend } = await import("resend");
         const resend = new Resend(process.env.RESEND_API_KEY);

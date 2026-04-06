@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import jsPDF from "jspdf";
 import { isSilentMode } from "@/lib/services/silent-mode";
+import { logShadowOutbound } from "@/lib/services/shadow-log";
 
 export async function POST(req: Request) {
   try {
@@ -185,9 +186,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, testMode: true });
     }
 
-    // Silent mode: skip sending but return success
+    // Silent mode: skip sending but log what would have been sent
     if (organizationId && (await isSilentMode(organizationId))) {
       console.log(`[SILENT MODE] Suppressed completion report for job ${job.job_number}`);
+      await logShadowOutbound({
+        organizationId,
+        sourceRoute: "completion/send",
+        emailType: "completion_report",
+        to: recipientEmails.join(", "),
+        subject: `Completion Report: ${job.job_number} — ${address}`,
+        bodyHtml: htmlBody,
+        attachmentsMeta: [{ filename: `completion-report-${job.job_number}.pdf`, mimeType: "application/pdf", sizeBytes: pdfBuffer.length }],
+        relatedJobId: jobId,
+        relatedJobNumber: job.job_number,
+        metadata: { taskCount: (tasks || []).length, recipientCount: recipientEmails.length },
+      });
       return NextResponse.json({ success: true, silentMode: true });
     }
 

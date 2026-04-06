@@ -20,6 +20,7 @@ import {
   ExternalLink,
   GitCompareArrows,
   Users,
+  ScanLine,
 } from "lucide-react";
 import Link from "next/link";
 import type {
@@ -251,6 +252,15 @@ export function CFODashboardClient({
                 <p className="text-sm font-bold text-white">Who Owes What</p>
                 <p className="text-[10px] text-white/40 mt-0.5">
                   Account by account
+                </p>
+              </GlassCard>
+            </Link>
+            <Link href="/ops/cheques/scan">
+              <GlassCard className="p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group h-full">
+                <ScanLine className="w-5 h-5 text-green-400 mb-2" />
+                <p className="text-sm font-bold text-white">Scan Cheque</p>
+                <p className="text-[10px] text-white/40 mt-0.5">
+                  Photo the stub, match invoices
                 </p>
               </GlassCard>
             </Link>

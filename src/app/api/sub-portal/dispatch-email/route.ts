@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { isSilentMode } from "@/lib/services/silent-mode";
+import { logShadowOutbound } from "@/lib/services/shadow-log";
 import { generateJobICS } from "@/lib/services/ics";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -25,12 +26,6 @@ export async function POST(req: Request) {
         { error: "subEmail and magicLink are required" },
         { status: 400 },
       );
-    }
-
-    // Silent mode: skip sending but return success
-    if (organizationId && (await isSilentMode(organizationId))) {
-      console.log(`[SILENT MODE] Suppressed dispatch email to ${subEmail} for ${jobNumber}`);
-      return NextResponse.json({ success: true, silentMode: true });
     }
 
     // Build .ics attachment if we have dates
@@ -64,12 +59,8 @@ export async function POST(req: Request) {
          </p>`
       : "";
 
-    const { error } = await resend.emails.send({
-      from: "Frank's Home Improvement <onboarding@resend.dev>",
-      to: subEmail,
-      subject: `Job Assignment: ${jobNumber} — ${address}`,
-      attachments,
-      html: `
+    const emailSubject = `Job Assignment: ${jobNumber} — ${address}`;
+    const emailHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 8px;">
             Frank's Home Improvement
@@ -104,7 +95,31 @@ export async function POST(req: Request) {
             This link is unique to you. Do not share it with others.
           </p>
         </div>
-      `,
+      `;
+
+    // Silent mode: skip sending but log what would have been sent
+    if (organizationId && (await isSilentMode(organizationId))) {
+      console.log(`[SILENT MODE] Suppressed dispatch email to ${subEmail} for ${jobNumber}`);
+      await logShadowOutbound({
+        organizationId,
+        sourceRoute: "sub-portal/dispatch-email",
+        emailType: "dispatch",
+        to: subEmail,
+        subject: emailSubject,
+        bodyHtml: emailHtml,
+        attachmentsMeta: attachments.map((a) => ({ filename: a.filename, mimeType: "text/calendar", sizeBytes: a.content.length })),
+        relatedJobNumber: jobNumber,
+        metadata: { subName, address, startDate, endDate, assignmentId },
+      });
+      return NextResponse.json({ success: true, silentMode: true });
+    }
+
+    const { error } = await resend.emails.send({
+      from: "Frank's Home Improvement <onboarding@resend.dev>",
+      to: subEmail,
+      subject: emailSubject,
+      attachments,
+      html: emailHtml,
     });
 
     if (error) {

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { isSilentMode } from "@/lib/services/silent-mode";
+import { logShadowOutbound } from "@/lib/services/shadow-log";
 
 function getAdminClient() {
   return createClient(
@@ -136,9 +137,20 @@ export async function sendStatusTransitionEmail(
       return true;
     }
 
-    // Silent mode: skip sending but return success
+    // Silent mode: skip sending but log what would have been sent
     if ((job as any).organization_id && (await isSilentMode((job as any).organization_id))) {
       console.log(`[SILENT MODE] Suppressed status email "${message.subject}" to ${client.email}`);
+      await logShadowOutbound({
+        organizationId: (job as any).organization_id,
+        sourceRoute: "status-comms",
+        emailType: "status_transition",
+        to: client.email,
+        subject: message.subject,
+        bodyHtml: message.html,
+        relatedJobId: jobId,
+        relatedJobNumber: (job as any).job_number,
+        metadata: { newStatus, clientName: client.name },
+      });
       return true;
     }
 

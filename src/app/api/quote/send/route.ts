@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { jsPDF } from "jspdf";
 import { isSilentMode } from "@/lib/services/silent-mode";
+import { logShadowOutbound } from "@/lib/services/shadow-log";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -122,9 +123,25 @@ export async function POST(req: NextRequest) {
       total,
     );
 
+    // Resolve recipients early so shadow log can capture them
+    const toEmail = billingEmail || "coady@allprofessionaltrades.com";
+    const ccEmail = coordinatorEmail || "neilh@allprofessionaltrades.com";
+
     // Silent mode: skip sending but return success
     if (organizationId && (await isSilentMode(organizationId))) {
       console.log(`[SILENT MODE] Suppressed quote email for ${jobNumber}`);
+      await logShadowOutbound({
+        organizationId,
+        sourceRoute: "quote/send",
+        emailType: "quote",
+        to: toEmail,
+        cc: ccEmail,
+        subject: `Quote ${jobNumber} - ${propertyAddress || "Job"}`,
+        bodyHtml: `<p>Hi ${toEmail.split("@")[0]},</p><p>Here's the quote for ${jobNumber}.</p><p>Property: ${propertyAddress || "N/A"}<br/>Total: $${total.toFixed(2)}</p><p>Thanks,<br/>Frank</p>`,
+        attachmentsMeta: [{ filename: `Quote-${jobNumber}.pdf`, mimeType: "application/pdf", sizeBytes: pdfBuffer.length }],
+        relatedJobNumber: jobNumber,
+        metadata: { total, itemCount: items.length, propertyAddress },
+      });
       return NextResponse.json({ success: true, silentMode: true });
     }
 
@@ -136,10 +153,6 @@ export async function POST(req: NextRequest) {
         error: "RESEND_API_KEY not set. Use mailto fallback.",
       });
     }
-
-    // Use provided contacts or fall back to defaults
-    const toEmail = billingEmail || "coady@allprofessionaltrades.com";
-    const ccEmail = coordinatorEmail || "neilh@allprofessionaltrades.com";
     const toName = toEmail.split("@")[0];
 
     const { data, error } = await resend.emails.send({

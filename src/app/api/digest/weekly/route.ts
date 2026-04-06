@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { isSilentMode } from "@/lib/services/silent-mode";
+import { logShadowOutbound } from "@/lib/services/shadow-log";
 
 function getAdminClient() {
   return createClient(
@@ -49,6 +50,14 @@ async function generateWeeklyDigest() {
       // Silent mode: skip sending digest
       if (await isSilentMode(org.id)) {
         console.log(`[SILENT MODE] Suppressed weekly digest for org ${org.id}`);
+        await logShadowOutbound({
+          organizationId: org.id,
+          sourceRoute: "digest/weekly",
+          emailType: "weekly_digest",
+          to: (org as any).digest_email || "unknown",
+          subject: "Your week in review",
+          metadata: { orgName: org.name },
+        });
         results.push({ orgId: org.id, sent: false });
         continue;
       }
