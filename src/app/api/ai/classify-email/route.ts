@@ -16,7 +16,8 @@ Classify this incoming email into one of these categories:
 1. "new_work" — A request to do work (painting, repairs, turnover, etc.). This is the most common type from Neil.
 2. "quote_request" — Frank needs to go look at a unit first and give a price before starting. Look for words like "quote", "estimate", "see this unit", "need a price".
 3. "job_update" — An update about an existing job (photos, schedule change, question about ongoing work)
-4. "irrelevant" — Not related to work (spam, newsletter, personal, promotions, automated notifications)
+4. "payment_ready" — A cheque or payment is ready for Frank to pick up. Look for words like "cheque", "check", "pick up", "payment ready", "ready for you". Coady Gallant typically sends these.
+5. "irrelevant" — Not related to work (spam, newsletter, personal, promotions, automated notifications)
 
 Also extract:
 - client_name: The person who sent the work request (usually Neil Henderson, not the property manager)
@@ -29,10 +30,12 @@ Also extract:
 - needs_site_visit: true if Frank needs to go look at the unit before pricing (quote requests, "see this unit", etc.)
 - existing_job_hint: If this seems related to an existing job, any identifying info (address, job number, prior reference)
 - has_scope_pdf: true if the email mentions or attaches a scope document, work order PDF, or checklist
+- payment_amount: If a dollar amount is mentioned in a payment/cheque email, extract it (e.g., "$1,250.00"). null if not mentioned.
 
 Return JSON only:
 {
-  "classification": "new_work" | "quote_request" | "job_update" | "irrelevant",
+  "classification": "new_work" | "quote_request" | "job_update" | "payment_ready" | "irrelevant",
+  "payment_amount": string | null,
   "client_name": string | null,
   "property_owner": string | null,
   "property_address": string | null,

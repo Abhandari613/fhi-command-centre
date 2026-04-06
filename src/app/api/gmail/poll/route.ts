@@ -281,6 +281,20 @@ async function pollGmail() {
                 }
               }
             }
+          } else if (classification === "payment_ready") {
+            // Cheque ready for pickup — notify Frank
+            await pushNotification({
+              organizationId,
+              type: "payment_ready",
+              title: `Cheque ready for pickup`,
+              body: classResult.summary || `${classResult.client_name || latestMsg.from} says a cheque is ready`,
+              metadata: {
+                from: latestMsg.from,
+                classification,
+                payment_amount: classResult.payment_amount || null,
+                property_address: classResult.property_address || null,
+              },
+            });
           } else if (classification === "job_update") {
             if (
               classResult.existing_job_hint ||
